@@ -104,13 +104,13 @@ function AuthPage() {
           <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-accent/50 blur-3xl" />
         </div>
 
-        <div className="relative flex w-full max-w-md flex-col justify-center px-4 py-2 sm:px-6 lg:px-6 lg:py-12">
+        <div className={`relative flex w-full flex-col justify-center px-4 py-2 sm:px-6 lg:px-6 lg:py-12 ${mode === "register" ? "max-w-2xl" : "max-w-md"}`}>
           <div className={`animate-rise text-center lg:mb-8 ${mode === "register" ? "mb-2" : "mb-3"}`}>
-            <span className="mx-auto mb-2 grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden">
+            <span className={`mx-auto mb-2 grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden ${mode === "register" ? "hidden" : ""}`}>
               <HeartPulse className="size-5" />
             </span>
             <h1 className="text-2xl font-extrabold tracking-tight lg:text-3xl">Medicu CI</h1>
-          <p className="mt-1 text-pretty text-sm text-muted-foreground lg:mt-2">
+          <p className={`mt-1 text-pretty text-sm text-muted-foreground lg:mt-2 ${mode === "register" ? "hidden lg:block" : ""}`}>
             {mode === "login"
               ? "Accede a tus citas y tu historial médico."
               : "Crea tu cuenta en menos de un minuto."}
@@ -138,56 +138,59 @@ function AuthPage() {
 
           <form onSubmit={submit} className={mode === "register" ? "space-y-2 lg:space-y-4" : "space-y-4"}>
             {mode === "register" ? (
-              <>
-                {/* Sección 1: Documento de identidad */}
-                <Section step={1} title="Documento de identidad">
-                  <Field
-                    icon={<IdCard className="size-[18px]" />}
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="DNI"
-                    autoComplete="off"
-                  />
-                  <div>
-                    <label className="mb-1.5 block pl-1 text-xs font-medium text-muted-foreground">
-                      Fecha de emisión
-                    </label>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:gap-4">
+                {/* Columna izquierda */}
+                <div className="space-y-2 lg:space-y-4">
+                  {/* Sección 1: Documento de identidad */}
+                  <Section step={1} title="Documento de identidad">
                     <Field
-                      icon={<CalendarDays className="size-[18px]" />}
-                      type="date"
+                      icon={<IdCard className="size-[18px]" />}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="DNI"
                       autoComplete="off"
                     />
-                  </div>
-                </Section>
+                    <div>
+                      <label className="mb-1 block pl-1 text-xs font-medium text-muted-foreground">
+                        Fecha de emisión
+                      </label>
+                      <Field
+                        icon={<CalendarDays className="size-[18px]" />}
+                        type="date"
+                        autoComplete="off"
+                      />
+                    </div>
+                  </Section>
 
-                {/* Sección 2: Datos personales */}
-                <Section step={2} title="Datos personales">
-                  <Field
-                    icon={<User className="size-[18px]" />}
-                    type="text"
-                    placeholder="Nombre completo"
-                    autoComplete="name"
-                  />
-                  <Field
-                    icon={<Mail className="size-[18px]" />}
-                    type="email"
-                    placeholder="Correo electrónico"
-                    autoComplete="email"
-                  />
-                  <Field
-                    icon={<Lock className="size-[18px]" />}
-                    type="password"
-                    placeholder="Contraseña"
-                    autoComplete="new-password"
-                  />
-                </Section>
+                  {/* Sección 2: Datos personales */}
+                  <Section step={2} title="Datos personales">
+                    <Field
+                      icon={<User className="size-[18px]" />}
+                      type="text"
+                      placeholder="Nombre completo"
+                      autoComplete="name"
+                    />
+                    <Field
+                      icon={<Mail className="size-[18px]" />}
+                      type="email"
+                      placeholder="Correo electrónico"
+                      autoComplete="email"
+                    />
+                    <Field
+                      icon={<Lock className="size-[18px]" />}
+                      type="password"
+                      placeholder="Contraseña"
+                      autoComplete="new-password"
+                    />
+                  </Section>
+                </div>
 
-                {/* Sección 3: Preferencias de especialidad */}
+                {/* Columna derecha: Preferencias */}
                 <Section step={3} title="Preferencias de especialidad">
                   <p className="-mt-1 pl-1 text-xs text-muted-foreground">
                     Elige una o varias (opcional).
                   </p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {SPECIALTIES.map((s) => {
                       const active = specialties.includes(s.id);
                       const Icon = s.icon;
@@ -198,7 +201,7 @@ function AuthPage() {
                           onClick={() => toggleSpecialty(s.id)}
                           aria-pressed={active}
                           className={
-                            "relative flex items-center gap-2 rounded-xl border p-2 text-left text-xs font-medium transition-all lg:p-3 lg:text-sm " +
+                            "relative flex items-center gap-2 rounded-xl border p-2 text-left text-xs font-medium transition-all lg:text-sm " +
                             (active
                               ? "border-primary bg-primary-soft text-foreground shadow-sm"
                               : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground")
@@ -206,22 +209,22 @@ function AuthPage() {
                         >
                           <span
                             className={
-                              "grid size-6 shrink-0 place-items-center rounded-lg lg:size-8 " +
+                              "grid size-6 shrink-0 place-items-center rounded-lg " +
                               (active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")
                             }
                           >
-                            <Icon className="size-3.5 lg:size-4" />
+                            <Icon className="size-3.5" />
                           </span>
                           <span className="leading-tight">{s.label}</span>
                           {active && (
-                            <Check className="absolute right-2 top-2 size-3.5 text-primary lg:size-4" />
+                            <Check className="absolute right-2 top-2 size-3.5 text-primary" />
                           )}
                         </button>
                       );
                     })}
                   </div>
                 </Section>
-              </>
+              </div>
             ) : (
               <>
                 <Field
