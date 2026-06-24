@@ -50,9 +50,9 @@ function AuthPage() {
 
 
   return (
-    <div className="relative grid min-h-screen lg:grid-cols-2">
-      {/* Mobile: clinic image banner */}
-      <div className="relative h-44 overflow-hidden sm:h-56 lg:hidden">
+    <div className="relative grid min-h-dvh lg:grid-cols-2">
+      {/* Mobile: clinic image banner — hide on register to save space */}
+      <div className={`relative overflow-hidden lg:hidden ${mode === "register" ? "h-16" : "h-44 sm:h-56"}`}>
         <img
           src={clinicImg}
           alt="Recepción de la clínica Medicu CI"
@@ -61,7 +61,7 @@ function AuthPage() {
           className="absolute inset-0 size-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/25 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 p-5 text-primary-foreground">
+        <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 p-3 text-primary-foreground">
           <HeartPulse className="size-5" />
           <span className="text-lg font-extrabold">Medicu CI</span>
         </div>
