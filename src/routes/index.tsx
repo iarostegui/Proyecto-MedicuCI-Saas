@@ -49,8 +49,8 @@ function AuthPage() {
 
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-2">
-      {/* Mobile: clinic image banner — hide on register to save space */}
-      <div className={`relative overflow-hidden lg:hidden ${mode === "register" ? "h-16" : "h-44 sm:h-56"}`}>
+      {/* Mobile: clinic image banner — hide completely on register */}
+      <div className={`relative overflow-hidden lg:hidden ${mode === "register" ? "hidden" : "h-44 sm:h-56"}`}>
         <img
           src={clinicImg}
           alt="Recepción de la clínica Medicu CI"
