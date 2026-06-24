@@ -32,19 +32,52 @@ function AuthPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* ambient backdrop */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 -top-24 size-80 rounded-full bg-primary-soft blur-3xl" />
-        <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-accent/50 blur-3xl" />
-      </div>
+    <div className="relative grid min-h-screen lg:grid-cols-2">
+      {/* Left: clinic image (desktop) */}
+      <aside className="relative hidden overflow-hidden lg:block">
+        <img
+          src={clinicImg}
+          alt="Recepción de la clínica Medicu CI"
+          width={1024}
+          height={1536}
+          className="absolute inset-0 size-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/20 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-10 text-primary-foreground">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-sm font-medium backdrop-blur-sm">
+            <HeartPulse className="size-4" />
+            Medicu CI
+          </div>
+          <h2 className="max-w-sm text-balance text-3xl font-extrabold leading-tight">
+            Tu salud, organizada en un solo lugar
+          </h2>
+          <div className="mt-6 flex flex-wrap gap-5 text-sm font-medium">
+            <span className="inline-flex items-center gap-2">
+              <CalendarCheck className="size-4" />
+              Agenda en segundos
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <Clock className="size-4" />
+              Atención urgente 24/7
+            </span>
+          </div>
+        </div>
+      </aside>
 
-      <div className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-        <div className="animate-rise mb-8 text-center">
-          <span className="mx-auto mb-5 grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-card)]">
-            <HeartPulse className="size-7" />
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight">Medicu CI</h1>
+      {/* Right: auth form */}
+      <div className="relative flex items-center justify-center overflow-hidden bg-background">
+        {/* ambient backdrop */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 -top-24 size-80 rounded-full bg-primary-soft blur-3xl" />
+          <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-accent/50 blur-3xl" />
+        </div>
+
+        <div className="relative flex w-full max-w-md flex-col justify-center px-6 py-12">
+          <div className="animate-rise mb-8 text-center">
+            <span className="mx-auto mb-5 grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden">
+              <HeartPulse className="size-7" />
+            </span>
+            <h1 className="text-3xl font-extrabold tracking-tight">Medicu CI</h1>
           <p className="mt-2 text-pretty text-muted-foreground">
             {mode === "login"
               ? "Accede a tus citas y tu historial médico."
