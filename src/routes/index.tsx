@@ -47,8 +47,6 @@ function AuthPage() {
     navigate({ to: "/panel" });
   }
 
-
-
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-2">
       {/* Mobile: clinic image banner — hide on register to save space */}
@@ -194,7 +192,7 @@ function AuthPage() {
                       const active = specialties.includes(s.id);
                       const Icon = s.icon;
                       return (
-      <button
+                        <button
                           key={s.id}
                           type="button"
                           onClick={() => toggleSpecialty(s.id)}
@@ -246,14 +244,13 @@ function AuthPage() {
               </>
             )}
 
-
             <Button type="submit" size="lg" className="w-full text-base">
               {mode === "login" ? "Entrar" : "Crear cuenta"}
               <ArrowRight className="size-4" />
             </Button>
           </form>
 
-          <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground lg:mt-5">
             <ShieldCheck className="size-3.5 text-success" />
             Conexión segura y datos protegidos
           </p>
@@ -286,11 +283,20 @@ function Section({
   );
 }
 
-
-
 function Field({
   icon,
   ...props
 }: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <continuation omitted for brevity
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+        {icon}
+      </span>
+      <input
+        {...props}
+        required
+        className="h-10 w-full rounded-xl border border-input bg-background pl-11 pr-4 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 lg:h-12"
+      />
+    </div>
+  );
+}
