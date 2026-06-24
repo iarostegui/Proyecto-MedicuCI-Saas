@@ -144,6 +144,7 @@ function AuthPage() {
             <ShieldCheck className="size-3.5 text-success" />
             Conexión segura y datos protegidos
           </p>
+          </div>
         </div>
       </div>
     </div>
