@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { HeartPulse, Mail, Lock, User, ArrowRight, ShieldCheck, CalendarCheck, Clock } from "lucide-react";
+import { HeartPulse, Mail, Lock, User, ArrowRight, ShieldCheck, CalendarCheck, Clock, IdCard, CalendarDays, Check, Stethoscope, HeartHandshake, Baby, Brain, Bone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clinicImg from "@/assets/clinic.jpg";
 
@@ -22,14 +22,32 @@ export const Route = createFileRoute("/")({
   component: AuthPage,
 });
 
+const SPECIALTIES = [
+  { id: "familiar", label: "Medicina familiar", icon: HeartHandshake },
+  { id: "adultos-mayores", label: "Especialidades para adultos mayores", icon: HeartPulse },
+  { id: "pediatria", label: "Pediatría", icon: Baby },
+  { id: "salud-mental", label: "Salud mental", icon: Brain },
+  { id: "traumatologia", label: "Traumatología", icon: Bone },
+  { id: "general", label: "Medicina general", icon: Stethoscope },
+] as const;
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [specialties, setSpecialties] = useState<string[]>([]);
+
+  function toggleSpecialty(id: string) {
+    setSpecialties((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     navigate({ to: "/panel" });
   }
+
+
 
   return (
     <div className="relative grid min-h-screen lg:grid-cols-2">
@@ -121,34 +139,113 @@ function AuthPage() {
           </div>
 
           <form onSubmit={submit} className="space-y-4">
-            {mode === "register" && (
-              <Field
-                icon={<User className="size-[18px]" />}
-                type="text"
-                placeholder="Nombre completo"
-                autoComplete="name"
-              />
-            )}
-            <Field
-              icon={<Mail className="size-[18px]" />}
-              type="email"
-              placeholder="Correo electrónico"
-              autoComplete="email"
-            />
-            <Field
-              icon={<Lock className="size-[18px]" />}
-              type="password"
-              placeholder="Contraseña"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-            />
+            {mode === "register" ? (
+              <>
+                {/* Sección 1: Documento de identidad */}
+                <Section step={1} title="Documento de identidad">
+                  <Field
+                    icon={<IdCard className="size-[18px]" />}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="DNI"
+                    autoComplete="off"
+                  />
+                  <div>
+                    <label className="mb-1.5 block pl-1 text-xs font-medium text-muted-foreground">
+                      Fecha de emisión
+                    </label>
+                    <Field
+                      icon={<CalendarDays className="size-[18px]" />}
+                      type="date"
+                      autoComplete="off"
+                    />
+                  </div>
+                </Section>
 
-            {mode === "login" && (
-              <div className="text-right">
-                <button type="button" className="text-xs font-medium text-primary hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </button>
-              </div>
+                {/* Sección 2: Datos personales */}
+                <Section step={2} title="Datos personales">
+                  <Field
+                    icon={<User className="size-[18px]" />}
+                    type="text"
+                    placeholder="Nombre completo"
+                    autoComplete="name"
+                  />
+                  <Field
+                    icon={<Mail className="size-[18px]" />}
+                    type="email"
+                    placeholder="Correo electrónico"
+                    autoComplete="email"
+                  />
+                  <Field
+                    icon={<Lock className="size-[18px]" />}
+                    type="password"
+                    placeholder="Contraseña"
+                    autoComplete="new-password"
+                  />
+                </Section>
+
+                {/* Sección 3: Preferencias de especialidad */}
+                <Section step={3} title="Preferencias de especialidad">
+                  <p className="-mt-1 pl-1 text-xs text-muted-foreground">
+                    Elige una o varias (opcional).
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {SPECIALTIES.map((s) => {
+                      const active = specialties.includes(s.id);
+                      const Icon = s.icon;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggleSpecialty(s.id)}
+                          aria-pressed={active}
+                          className={
+                            "relative flex items-center gap-2.5 rounded-xl border p-3 text-left text-sm font-medium transition-all " +
+                            (active
+                              ? "border-primary bg-primary-soft text-foreground shadow-sm"
+                              : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground")
+                          }
+                        >
+                          <span
+                            className={
+                              "grid size-8 shrink-0 place-items-center rounded-lg " +
+                              (active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")
+                            }
+                          >
+                            <Icon className="size-4" />
+                          </span>
+                          <span className="leading-tight">{s.label}</span>
+                          {active && (
+                            <Check className="absolute right-2.5 top-2.5 size-4 text-primary" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Section>
+              </>
+            ) : (
+              <>
+                <Field
+                  icon={<Mail className="size-[18px]" />}
+                  type="email"
+                  placeholder="Correo electrónico"
+                  autoComplete="email"
+                />
+                <Field
+                  icon={<Lock className="size-[18px]" />}
+                  type="password"
+                  placeholder="Contraseña"
+                  autoComplete="current-password"
+                />
+                <div className="text-right">
+                  <button type="button" className="text-xs font-medium text-primary hover:underline">
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
+              </>
             )}
+
 
             <Button type="submit" size="lg" className="w-full text-base">
               {mode === "login" ? "Entrar" : "Crear cuenta"}
@@ -166,6 +263,30 @@ function AuthPage() {
     </div>
   );
 }
+
+function Section({
+  step,
+  title,
+  children,
+}: {
+  step: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          {step}
+        </span>
+        {title}
+      </h3>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+
 
 function Field({
   icon,
