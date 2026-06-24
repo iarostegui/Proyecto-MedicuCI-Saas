@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { HeartPulse, Mail, Lock, User, ArrowRight, ShieldCheck, CalendarCheck, Clock } from "lucide-react";
+import { HeartPulse, Mail, Lock, User, ArrowRight, ShieldCheck, CalendarCheck, Clock, IdCard, CalendarDays, Check, Stethoscope, HeartHandshake, Baby, Brain, Bone, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clinicImg from "@/assets/clinic.jpg";
 
