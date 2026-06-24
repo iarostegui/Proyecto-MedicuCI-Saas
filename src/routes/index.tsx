@@ -264,6 +264,30 @@ function AuthPage() {
   );
 }
 
+function Section({
+  step,
+  title,
+  children,
+}: {
+  step: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          {step}
+        </span>
+        {title}
+      </h3>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+
+
 function Field({
   icon,
   ...props
