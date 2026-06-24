@@ -104,8 +104,8 @@ function AuthPage() {
           <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-accent/50 blur-3xl" />
         </div>
 
-        <div className="relative flex w-full max-w-md flex-col justify-center px-4 py-3 sm:px-6 lg:px-6 lg:py-12">
-          <div className="animate-rise mb-3 text-center lg:mb-8">
+        <div className="relative flex w-full max-w-md flex-col justify-center px-4 py-2 sm:px-6 lg:px-6 lg:py-12">
+          <div className={`animate-rise text-center lg:mb-8 ${mode === "register" ? "mb-2" : "mb-3"}`}>
             <span className="mx-auto mb-2 grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden">
               <HeartPulse className="size-5" />
             </span>
