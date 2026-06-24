@@ -274,14 +274,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
-        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+    <section className="rounded-2xl border border-border/70 bg-secondary/40 p-3 lg:p-4">
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold lg:mb-3">
+        <span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground lg:size-6 lg:text-xs">
           {step}
         </span>
         {title}
       </h3>
-      <div className="space-y-3">{children}</div>
+      <div className="space-y-2 lg:space-y-3">{children}</div>
     </section>
   );
 }
