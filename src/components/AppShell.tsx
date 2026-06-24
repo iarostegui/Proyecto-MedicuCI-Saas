@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-soft)]">
               <HeartPulse className="size-5" />
             </span>
-            <span className="text-lg font-bold tracking-tight">Clínica Vital</span>
+            <span className="text-lg font-bold tracking-tight">Medicu CI</span>
           </Link>
 
           <nav className="hidden items-center gap-1 sm:flex">

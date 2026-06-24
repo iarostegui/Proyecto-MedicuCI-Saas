@@ -78,14 +78,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Clínica Vital — Agenda tus citas médicas" },
+      { title: "Medicu CI — Agenda tus citas médicas" },
       {
         name: "description",
         content:
           "Reserva, organiza y consulta tus citas médicas en segundos. Agenda citas urgentes y revisa tu historial clínico desde un solo lugar.",
       },
-      { name: "author", content: "Clínica Vital" },
-      { property: "og:title", content: "Clínica Vital — Agenda tus citas médicas" },
+      { name: "author", content: "Medicu CI" },
+      { property: "og:title", content: "Medicu CI — Agenda tus citas médicas" },
       {
         property: "og:description",
         content: "Reserva, organiza y consulta tus citas médicas en segundos.",

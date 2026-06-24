@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Clínica Vital — Acceso" },
+      { title: "Medicu CI — Acceso" },
       {
         name: "description",
         content: "Inicia sesión o regístrate para agendar y consultar tus citas médicas.",
       },
-      { property: "og:title", content: "Clínica Vital — Acceso" },
+      { property: "og:title", content: "Medicu CI — Acceso" },
       {
         property: "og:description",
         content: "Inicia sesión o regístrate para agendar y consultar tus citas médicas.",
@@ -43,7 +43,7 @@ function AuthPage() {
           <span className="mx-auto mb-5 grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-card)]">
             <HeartPulse className="size-7" />
           </span>
-          <h1 className="text-3xl font-extrabold tracking-tight">Clínica Vital</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight">Medicu CI</h1>
           <p className="mt-2 text-pretty text-muted-foreground">
             {mode === "login"
               ? "Accede a tus citas y tu historial médico."
