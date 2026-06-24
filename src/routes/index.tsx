@@ -22,14 +22,32 @@ export const Route = createFileRoute("/")({
   component: AuthPage,
 });
 
+const SPECIALTIES = [
+  { id: "familiar", label: "Medicina familiar", icon: HeartHandshake },
+  { id: "adultos-mayores", label: "Especialidades para adultos mayores", icon: HeartPulse },
+  { id: "pediatria", label: "Pediatría", icon: Baby },
+  { id: "salud-mental", label: "Salud mental", icon: Brain },
+  { id: "traumatologia", label: "Traumatología", icon: Bone },
+  { id: "general", label: "Medicina general", icon: Stethoscope },
+] as const;
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [specialties, setSpecialties] = useState<string[]>([]);
+
+  function toggleSpecialty(id: string) {
+    setSpecialties((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     navigate({ to: "/panel" });
   }
+
+
 
   return (
     <div className="relative grid min-h-screen lg:grid-cols-2">
