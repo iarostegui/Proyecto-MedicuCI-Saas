@@ -194,13 +194,13 @@ function AuthPage() {
                       const active = specialties.includes(s.id);
                       const Icon = s.icon;
                       return (
-                        <button
+      <button
                           key={s.id}
                           type="button"
                           onClick={() => toggleSpecialty(s.id)}
                           aria-pressed={active}
                           className={
-                            "relative flex items-center gap-2.5 rounded-xl border p-3 text-left text-sm font-medium transition-all " +
+                            "relative flex items-center gap-2 rounded-xl border p-2 text-left text-xs font-medium transition-all lg:p-3 lg:text-sm " +
                             (active
                               ? "border-primary bg-primary-soft text-foreground shadow-sm"
                               : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground")
@@ -208,15 +208,15 @@ function AuthPage() {
                         >
                           <span
                             className={
-                              "grid size-8 shrink-0 place-items-center rounded-lg " +
+                              "grid size-6 shrink-0 place-items-center rounded-lg lg:size-8 " +
                               (active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")
                             }
                           >
-                            <Icon className="size-4" />
+                            <Icon className="size-3.5 lg:size-4" />
                           </span>
                           <span className="leading-tight">{s.label}</span>
                           {active && (
-                            <Check className="absolute right-2.5 top-2.5 size-4 text-primary" />
+                            <Check className="absolute right-2 top-2 size-3.5 text-primary lg:size-4" />
                           )}
                         </button>
                       );
