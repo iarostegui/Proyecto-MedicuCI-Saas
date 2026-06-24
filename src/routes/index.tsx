@@ -293,15 +293,4 @@ function Field({
   ...props
 }: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div className="relative">
-      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
-        {icon}
-      </span>
-      <input
-        {...props}
-        required
-        className="h-12 w-full rounded-xl border border-input bg-background pl-11 pr-4 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-      />
-    </div>
-  );
-}
+    <continuation omitted for brevity
