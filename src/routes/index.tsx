@@ -117,9 +117,9 @@ function AuthPage() {
           </p>
         </div>
 
-        <div className="animate-rise rounded-3xl border border-border/70 bg-card p-4 shadow-[var(--shadow-card)] [animation-delay:80ms] sm:p-6 lg:p-8">
+        <div className="animate-rise rounded-3xl border border-border/70 bg-card p-3 shadow-[var(--shadow-card)] [animation-delay:80ms] sm:p-5 lg:p-8">
           {/* tabs */}
-          <div className="mb-3 grid grid-cols-2 gap-1 rounded-full bg-secondary p-1 lg:mb-6">
+          <div className="mb-2 grid grid-cols-2 gap-1 rounded-full bg-secondary p-1 lg:mb-6">
             {(["login", "register"] as const).map((m) => (
               <button
                 key={m}
