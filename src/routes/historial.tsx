@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/historial")({
   head: () => ({
     meta: [
-      { title: "Historial · Clínica Vital" },
+      { title: "Historial · Medicu CI" },
       { name: "description", content: "Consulta tu historial de citas médicas organizado por fecha." },
     ],
   }),

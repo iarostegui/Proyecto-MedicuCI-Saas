@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/panel")({
   head: () => ({
     meta: [
-      { title: "Panel · Clínica Vital" },
+      { title: "Panel · Medicu CI" },
       { name: "description", content: "Agenda una cita rápida y consulta tus citas próximas." },
     ],
   }),
