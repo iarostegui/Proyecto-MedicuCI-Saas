@@ -106,13 +106,13 @@ function AuthPage() {
           <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-accent/50 blur-3xl" />
         </div>
 
-        <div className="relative flex w-full max-w-md flex-col justify-center px-6 py-12">
-          <div className="animate-rise mb-8 text-center">
-            <span className="mx-auto mb-5 grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden">
-              <HeartPulse className="size-7" />
+        <div className="relative flex w-full max-w-md flex-col justify-center px-4 py-3 sm:px-6 lg:px-6 lg:py-12">
+          <div className="animate-rise mb-3 text-center lg:mb-8">
+            <span className="mx-auto mb-2 grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden">
+              <HeartPulse className="size-5" />
             </span>
-            <h1 className="text-3xl font-extrabold tracking-tight">Medicu CI</h1>
-          <p className="mt-2 text-pretty text-muted-foreground">
+            <h1 className="text-2xl font-extrabold tracking-tight lg:text-3xl">Medicu CI</h1>
+          <p className="mt-1 text-pretty text-sm text-muted-foreground lg:mt-2">
             {mode === "login"
               ? "Accede a tus citas y tu historial médico."
               : "Crea tu cuenta en menos de un minuto."}
