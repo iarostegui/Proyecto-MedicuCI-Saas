@@ -47,12 +47,10 @@ function AuthPage() {
     navigate({ to: "/panel" });
   }
 
-
-
   return (
-    <div className="relative grid min-h-screen lg:grid-cols-2">
-      {/* Mobile: clinic image banner */}
-      <div className="relative h-44 overflow-hidden sm:h-56 lg:hidden">
+    <div className="relative grid min-h-dvh lg:grid-cols-2">
+      {/* Mobile: clinic image banner — hide completely on register */}
+      <div className={`relative overflow-hidden lg:hidden ${mode === "register" ? "hidden" : "h-44 sm:h-56"}`}>
         <img
           src={clinicImg}
           alt="Recepción de la clínica Medicu CI"
@@ -61,7 +59,7 @@ function AuthPage() {
           className="absolute inset-0 size-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-primary/25 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 p-5 text-primary-foreground">
+        <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 p-3 text-primary-foreground">
           <HeartPulse className="size-5" />
           <span className="text-lg font-extrabold">Medicu CI</span>
         </div>
@@ -106,28 +104,28 @@ function AuthPage() {
           <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-accent/50 blur-3xl" />
         </div>
 
-        <div className="relative flex w-full max-w-md flex-col justify-center px-6 py-12">
-          <div className="animate-rise mb-8 text-center">
-            <span className="mx-auto mb-5 grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden">
-              <HeartPulse className="size-7" />
+        <div className="relative flex w-full max-w-md flex-col justify-center px-4 py-2 sm:px-6 lg:px-6 lg:py-12">
+          <div className={`animate-rise text-center lg:mb-8 ${mode === "register" ? "mb-2" : "mb-3"}`}>
+            <span className="mx-auto mb-2 grid size-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-card)] lg:hidden">
+              <HeartPulse className="size-5" />
             </span>
-            <h1 className="text-3xl font-extrabold tracking-tight">Medicu CI</h1>
-          <p className="mt-2 text-pretty text-muted-foreground">
+            <h1 className="text-2xl font-extrabold tracking-tight lg:text-3xl">Medicu CI</h1>
+          <p className="mt-1 text-pretty text-sm text-muted-foreground lg:mt-2">
             {mode === "login"
               ? "Accede a tus citas y tu historial médico."
               : "Crea tu cuenta en menos de un minuto."}
           </p>
         </div>
 
-        <div className="animate-rise rounded-3xl border border-border/70 bg-card p-6 shadow-[var(--shadow-card)] [animation-delay:80ms] sm:p-8">
+        <div className="animate-rise rounded-3xl border border-border/70 bg-card p-3 shadow-[var(--shadow-card)] [animation-delay:80ms] sm:p-5 lg:p-8">
           {/* tabs */}
-          <div className="mb-6 grid grid-cols-2 gap-1 rounded-full bg-secondary p-1">
+          <div className="mb-2 grid grid-cols-2 gap-1 rounded-full bg-secondary p-1 lg:mb-6">
             {(["login", "register"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
                 className={
-                  "rounded-full py-2 text-sm font-semibold transition-colors " +
+                  "rounded-full py-1.5 text-xs font-semibold transition-colors lg:py-2 lg:text-sm " +
                   (mode === m
                     ? "bg-card text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground")
@@ -138,7 +136,7 @@ function AuthPage() {
             ))}
           </div>
 
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={submit} className={mode === "register" ? "space-y-2 lg:space-y-4" : "space-y-4"}>
             {mode === "register" ? (
               <>
                 {/* Sección 1: Documento de identidad */}
@@ -200,7 +198,7 @@ function AuthPage() {
                           onClick={() => toggleSpecialty(s.id)}
                           aria-pressed={active}
                           className={
-                            "relative flex items-center gap-2.5 rounded-xl border p-3 text-left text-sm font-medium transition-all " +
+                            "relative flex items-center gap-2 rounded-xl border p-2 text-left text-xs font-medium transition-all lg:p-3 lg:text-sm " +
                             (active
                               ? "border-primary bg-primary-soft text-foreground shadow-sm"
                               : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground")
@@ -208,15 +206,15 @@ function AuthPage() {
                         >
                           <span
                             className={
-                              "grid size-8 shrink-0 place-items-center rounded-lg " +
+                              "grid size-6 shrink-0 place-items-center rounded-lg lg:size-8 " +
                               (active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")
                             }
                           >
-                            <Icon className="size-4" />
+                            <Icon className="size-3.5 lg:size-4" />
                           </span>
                           <span className="leading-tight">{s.label}</span>
                           {active && (
-                            <Check className="absolute right-2.5 top-2.5 size-4 text-primary" />
+                            <Check className="absolute right-2 top-2 size-3.5 text-primary lg:size-4" />
                           )}
                         </button>
                       );
@@ -246,14 +244,13 @@ function AuthPage() {
               </>
             )}
 
-
             <Button type="submit" size="lg" className="w-full text-base">
               {mode === "login" ? "Entrar" : "Crear cuenta"}
               <ArrowRight className="size-4" />
             </Button>
           </form>
 
-          <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground lg:mt-5">
             <ShieldCheck className="size-3.5 text-success" />
             Conexión segura y datos protegidos
           </p>
@@ -274,19 +271,17 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-secondary/40 p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
-        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+    <section className="rounded-2xl border border-border/70 bg-secondary/40 p-3 lg:p-4">
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold lg:mb-3">
+        <span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground lg:size-6 lg:text-xs">
           {step}
         </span>
         {title}
       </h3>
-      <div className="space-y-3">{children}</div>
+      <div className="space-y-2 lg:space-y-3">{children}</div>
     </section>
   );
 }
-
-
 
 function Field({
   icon,
@@ -300,7 +295,7 @@ function Field({
       <input
         {...props}
         required
-        className="h-12 w-full rounded-xl border border-input bg-background pl-11 pr-4 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+        className="h-10 w-full rounded-xl border border-input bg-background pl-11 pr-4 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20 lg:h-12"
       />
     </div>
   );
