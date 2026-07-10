@@ -35,6 +35,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [specialties, setSpecialties] = useState<string[]>([]);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   function toggleSpecialty(id: string) {
     setSpecialties((prev) =>
@@ -245,6 +246,29 @@ function AuthPage() {
                   </button>
                 </div>
               </>
+            )}
+
+            {mode === "register" && (
+              <label className="flex items-start gap-2 rounded-xl border border-border/70 bg-secondary/30 p-2 lg:p-3">
+                <input
+                  type="checkbox"
+                  required
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 size-4 shrink-0 accent-primary"
+                />
+                <span className="text-xs leading-tight text-muted-foreground">
+                  Acepto los{" "}
+                  <button type="button" className="font-medium text-primary hover:underline">
+                    términos y condiciones
+                  </button>{" "}
+                  y el{" "}
+                  <button type="button" className="font-medium text-primary hover:underline">
+                    tratamiento de datos personales
+                  </button>{" "}
+                  <span className="text-destructive">*</span>
+                </span>
+              </label>
             )}
 
             <Button type="submit" size="lg" className="w-full text-base">
