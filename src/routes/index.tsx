@@ -35,6 +35,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [specialties, setSpecialties] = useState<string[]>([]);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   function toggleSpecialty(id: string) {
     setSpecialties((prev) =>
