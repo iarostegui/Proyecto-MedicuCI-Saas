@@ -1,90 +1,97 @@
-import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Search, Stethoscope, FileText, ChevronRight } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Cascara_App } from "@/components/Cascara_App";
+import { Insignia_Estado } from "@/components/Insignia_Estado";
 import {
-  historySeed,
-  shortDate,
-  type Appointment,
-  type AppointmentStatus,
-} from "@/lib/appointments";
+  HISTORIAL_SEMILLA,
+  fechaCorta,
+  type Cita,
+  type EstadoCita,
+} from "@/logica/citas";
+import { obtenerSesion } from "@/logica/autenticacion";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/historial")({
+export const Route = createFileRoute("/historial_citas")({
   head: () => ({
     meta: [
       { title: "Historial · Medicu CI" },
-      { name: "description", content: "Consulta tu historial de citas médicas organizado por fecha." },
+      {
+        name: "description",
+        content: "Consulta tu historial de citas médicas organizado por fecha.",
+      },
     ],
   }),
-  component: HistoryPage,
+  component: Pagina_Historial_Citas,
 });
 
-type Filter = "todas" | AppointmentStatus;
-const filters: { key: Filter; label: string }[] = [
+type FiltroHistorial = "todas" | EstadoCita;
+const filtros: { key: FiltroHistorial; label: string }[] = [
   { key: "todas", label: "Todas" },
   { key: "completada", label: "Completadas" },
   { key: "cancelada", label: "Canceladas" },
   { key: "urgente", label: "Urgentes" },
 ];
 
-function HistoryPage() {
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("todas");
+function Pagina_Historial_Citas() {
+  const navigate = useNavigate();
+  const [busqueda, setBusqueda] = useState("");
+  const [filtro, setFiltro] = useState<FiltroHistorial>("todas");
 
-  const results = useMemo(() => {
-    return historySeed
-      .filter((a) => (filter === "todas" ? true : a.status === filter))
-      .filter((a) =>
-        (a.specialty + " " + a.doctor + " " + a.location)
+  useEffect(() => {
+    const sesion = obtenerSesion();
+    if (!sesion) navigate({ to: "/inicio_sesion" });
+  }, [navigate]);
+
+  const resultados = useMemo(() => {
+    return HISTORIAL_SEMILLA.filter((c) => (filtro === "todas" ? true : c.estado === filtro))
+      .filter((c) =>
+        (c.especialidad + " " + c.doctor + " " + c.ubicacion)
           .toLowerCase()
-          .includes(query.toLowerCase()),
+          .includes(busqueda.toLowerCase()),
       )
-      .sort((a, b) => b.date.localeCompare(a.date));
-  }, [query, filter]);
+      .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }, [busqueda, filtro]);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, Appointment[]>();
-    results.forEach((a) => {
-      const key = new Date(a.date + "T00:00:00").toLocaleDateString("es-ES", {
+  const agrupadas = useMemo(() => {
+    const map = new Map<string, Cita[]>();
+    resultados.forEach((c) => {
+      const clave = new Date(c.fecha + "T00:00:00").toLocaleDateString("es-ES", {
         month: "long",
         year: "numeric",
       });
-      const arr = map.get(key) ?? [];
-      arr.push(a);
-      map.set(key, arr);
+      const arr = map.get(clave) ?? [];
+      arr.push(c);
+      map.set(clave, arr);
     });
     return [...map.entries()];
-  }, [results]);
+  }, [resultados]);
 
   return (
-    <AppShell>
+    <Cascara_App>
       <section className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Historial de citas</h1>
         <p className="mt-1 text-muted-foreground">Tu recorrido médico, organizado y a la mano.</p>
       </section>
 
-      {/* Search */}
       <div className="relative mb-4">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground" />
         <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por especialidad, doctor o lugar…"
           className="h-11 w-full rounded-xl border border-input bg-card pl-11 pr-4 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
         />
       </div>
 
-      {/* Filters */}
       <div className="mb-7 flex flex-wrap gap-2">
-        {filters.map((f) => (
+        {filtros.map((f) => (
           <button
             key={f.key}
-            onClick={() => setFilter(f.key)}
+            onClick={() => setFiltro(f.key)}
             className={cn(
               "rounded-full px-4 py-1.5 text-sm font-medium ring-1 ring-inset transition-colors",
-              filter === f.key
+              filtro === f.key
                 ? "bg-primary text-primary-foreground ring-primary"
                 : "bg-card text-muted-foreground ring-border hover:bg-secondary",
             )}
@@ -94,47 +101,46 @@ function HistoryPage() {
         ))}
       </div>
 
-      {/* Timeline */}
-      {grouped.length === 0 ? (
+      {agrupadas.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-muted-foreground">
           No se encontraron citas con esos criterios.
         </div>
       ) : (
         <div className="space-y-8">
-          {grouped.map(([month, items]) => (
-            <div key={month}>
+          {agrupadas.map(([mes, items]) => (
+            <div key={mes}>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground first-letter:uppercase">
-                {month}
+                {mes}
               </h2>
               <ul className="space-y-3">
-                {items.map((a) => {
-                  const { day, month: mon } = shortDate(a.date);
+                {items.map((c) => {
+                  const { dia, mes: mesCorto } = fechaCorta(c.fecha);
                   return (
                     <li
-                      key={a.id}
+                      key={c.id}
                       className="animate-rise group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-card)]"
                     >
                       <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-secondary py-2">
                         <span className="text-lg font-extrabold leading-none text-foreground">
-                          {day}
+                          {dia}
                         </span>
                         <span className="text-[11px] font-medium uppercase text-muted-foreground">
-                          {mon}
+                          {mesCorto}
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex items-center gap-2">
-                          <p className="truncate font-semibold">{a.specialty}</p>
-                          <StatusBadge status={a.status} />
+                          <p className="truncate font-semibold">{c.especialidad}</p>
+                          <Insignia_Estado estado={c.estado} />
                         </div>
                         <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
                           <Stethoscope className="size-3.5 shrink-0" />
-                          {a.doctor} · {a.time}
+                          {c.doctor} · {c.hora}
                         </p>
-                        {a.note && (
+                        {c.nota && (
                           <p className="mt-1 flex items-center gap-1.5 truncate text-xs font-medium text-primary">
                             <FileText className="size-3.5 shrink-0" />
-                            {a.note}
+                            {c.nota}
                           </p>
                         )}
                       </div>
@@ -147,6 +153,6 @@ function HistoryPage() {
           ))}
         </div>
       )}
-    </AppShell>
+    </Cascara_App>
   );
 }

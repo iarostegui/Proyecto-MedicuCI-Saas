@@ -1,71 +1,91 @@
-import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, Clock, MapPin, CalendarPlus, Stethoscope, X } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Cascara_App } from "@/components/Cascara_App";
+import { Insignia_Estado } from "@/components/Insignia_Estado";
 import { Button } from "@/components/ui/button";
 import {
-  upcomingSeed,
-  specialties,
-  doctors,
-  formatLongDate,
-  type Appointment,
-} from "@/lib/appointments";
+  CITAS_PROXIMAS_SEMILLA,
+  DOCTORES,
+  ESPECIALIDADES,
+  formatearFechaLarga,
+  type Cita,
+} from "@/logica/citas";
+import { obtenerSesion } from "@/logica/autenticacion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/panel")({
+export const Route = createFileRoute("/panel_principal")({
   head: () => ({
     meta: [
       { title: "Panel · Medicu CI" },
-      { name: "description", content: "Agenda una cita rápida y consulta tus citas próximas." },
+      {
+        name: "description",
+        content: "Agenda una cita rápida y consulta tus citas próximas.",
+      },
     ],
   }),
-  component: PanelPage,
+  component: Pagina_Panel_Principal,
 });
 
-function PanelPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>(upcomingSeed);
-  const [open, setOpen] = useState(false);
+function Pagina_Panel_Principal() {
+  const navigate = useNavigate();
+  const [nombreUsuario, setNombreUsuario] = useState<string>("");
+  const [citas, setCitas] = useState<Cita[]>(CITAS_PROXIMAS_SEMILLA);
+  const [abierto, setAbierto] = useState(false);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, Appointment[]>();
-    [...appointments]
-      .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-      .forEach((a) => {
-        const arr = map.get(a.date) ?? [];
-        arr.push(a);
-        map.set(a.date, arr);
+  useEffect(() => {
+    const sesion = obtenerSesion();
+    if (!sesion) {
+      navigate({ to: "/inicio_sesion" });
+      return;
+    }
+    if (sesion.rol === "Medico") {
+      navigate({ to: "/panel_medico" });
+      return;
+    }
+    setNombreUsuario(sesion.nombre);
+  }, [navigate]);
+
+  const agrupadas = useMemo(() => {
+    const map = new Map<string, Cita[]>();
+    [...citas]
+      .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora))
+      .forEach((c) => {
+        const arr = map.get(c.fecha) ?? [];
+        arr.push(c);
+        map.set(c.fecha, arr);
       });
     return [...map.entries()];
-  }, [appointments]);
+  }, [citas]);
 
-  function addAppointment(a: Appointment) {
-    setAppointments((prev) => [...prev, a]);
+  function agregarCita(c: Cita) {
+    setCitas((prev) => [...prev, c]);
     toast.success("Cita agendada", {
-      description: `${a.specialty} · ${formatLongDate(a.date)} a las ${a.time}`,
+      description: `${c.especialidad} · ${formatearFechaLarga(c.fecha)} a las ${c.hora}`,
     });
   }
 
   return (
-    <AppShell>
+    <Cascara_App>
       <section className="mb-8">
-        <p className="text-sm font-medium text-primary">Hola, Carlos 👋</p>
+        <p className="text-sm font-medium text-primary">
+          Hola{nombreUsuario ? `, ${nombreUsuario.split(" ")[0]}` : ""} 👋
+        </p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
           Tus próximas citas
         </h1>
         <p className="mt-1 text-muted-foreground">
-          {appointments.length} cita{appointments.length !== 1 && "s"} programada
-          {appointments.length !== 1 && "s"}.
+          {citas.length} cita{citas.length !== 1 && "s"} programada
+          {citas.length !== 1 && "s"}.
         </p>
       </section>
 
-      {/* Quick book */}
-      {open ? (
-        <QuickBook onClose={() => setOpen(false)} onSave={addAppointment} />
+      {abierto ? (
+        <Reserva_Rapida onCerrar={() => setAbierto(false)} onGuardar={agregarCita} />
       ) : (
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => setAbierto(true)}
           className="group mb-8 flex w-full items-center gap-4 rounded-2xl border border-dashed border-primary/40 bg-primary-soft/50 p-5 text-left transition-colors hover:bg-primary-soft"
         >
           <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-soft)] transition-transform group-hover:scale-105">
@@ -81,74 +101,75 @@ function PanelPage() {
         </button>
       )}
 
-      {/* Upcoming grouped */}
       <div className="space-y-8">
-        {grouped.map(([date, items]) => (
-          <div key={date}>
+        {agrupadas.map(([fecha, items]) => (
+          <div key={fecha}>
             <h2 className="mb-3 border-b border-border pb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground first-letter:uppercase">
-              {formatLongDate(date)}
+              {formatearFechaLarga(fecha)}
             </h2>
             <ul className="space-y-3">
-              {items.map((a) => (
+              {items.map((c) => (
                 <li
-                  key={a.id}
+                  key={c.id}
                   className="animate-rise group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-card)]"
                 >
                   <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft py-2 text-primary">
                     <Clock className="mb-0.5 size-4" />
-                    <span className="text-sm font-bold leading-none">{a.time}</span>
+                    <span className="text-sm font-bold leading-none">{c.hora}</span>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{a.specialty}</p>
+                    <p className="truncate font-semibold">{c.especialidad}</p>
                     <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
                       <Stethoscope className="size-3.5 shrink-0" />
-                      {a.doctor}
+                      {c.doctor}
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
                       <MapPin className="size-3 shrink-0" />
-                      {a.location}
+                      {c.ubicacion}
                     </p>
                   </div>
-                  <StatusBadge status={a.status} />
+                  <Insignia_Estado estado={c.estado} />
                 </li>
               ))}
             </ul>
           </div>
         ))}
       </div>
-    </AppShell>
+    </Cascara_App>
   );
 }
 
-function QuickBook({
-  onClose,
-  onSave,
+function Reserva_Rapida({
+  onCerrar,
+  onGuardar,
 }: {
-  onClose: () => void;
-  onSave: (a: Appointment) => void;
+  onCerrar: () => void;
+  onGuardar: (c: Cita) => void;
 }) {
-  const [specialty, setSpecialty] = useState(specialties[0]);
-  const [doctor, setDoctor] = useState(doctors[0]);
-  const [date, setDate] = useState(new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10));
-  const [time, setTime] = useState("10:00");
+  const [especialidad, setEspecialidad] = useState(ESPECIALIDADES[0]);
+  const [doctor, setDoctor] = useState(DOCTORES[0]);
+  const [fecha, setFecha] = useState(
+    new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
+  );
+  const [hora, setHora] = useState("10:00");
 
-  function save(e: React.FormEvent) {
+  function guardar(e: React.FormEvent) {
     e.preventDefault();
-    onSave({
+    onGuardar({
       id: crypto.randomUUID(),
-      specialty,
+      especialidad,
       doctor,
-      location: "Torre Médica · por confirmar",
-      date,
-      time,
-      status: "pendiente",
+      ubicacion: "Torre Médica · por confirmar",
+      fecha,
+      hora,
+      estado: "pendiente",
     });
-    onClose();
+    onCerrar();
   }
 
   return (
     <form
-      onSubmit={save}
+      onSubmit={guardar}
       className="animate-rise mb-8 rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-card)]"
     >
       <div className="mb-4 flex items-center justify-between">
@@ -158,7 +179,7 @@ function QuickBook({
         </h2>
         <button
           type="button"
-          onClick={onClose}
+          onClick={onCerrar}
           className="grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary"
         >
           <X className="size-4" />
@@ -166,26 +187,44 @@ function QuickBook({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Labeled label="Especialidad" className="sm:col-span-2">
-          <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} className={selectCls}>
-            {specialties.map((s) => (
+        <Etiquetado label="Especialidad" className="sm:col-span-2">
+          <select
+            value={especialidad}
+            onChange={(e) => setEspecialidad(e.target.value)}
+            className={selectCls}
+          >
+            {ESPECIALIDADES.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
-        </Labeled>
-        <Labeled label="Profesional" className="sm:col-span-2">
-          <select value={doctor} onChange={(e) => setDoctor(e.target.value)} className={selectCls}>
-            {doctors.map((d) => (
+        </Etiquetado>
+        <Etiquetado label="Profesional" className="sm:col-span-2">
+          <select
+            value={doctor}
+            onChange={(e) => setDoctor(e.target.value)}
+            className={selectCls}
+          >
+            {DOCTORES.map((d) => (
               <option key={d}>{d}</option>
             ))}
           </select>
-        </Labeled>
-        <Labeled label="Fecha">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={selectCls} />
-        </Labeled>
-        <Labeled label="Hora">
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={selectCls} />
-        </Labeled>
+        </Etiquetado>
+        <Etiquetado label="Fecha">
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            className={selectCls}
+          />
+        </Etiquetado>
+        <Etiquetado label="Hora">
+          <input
+            type="time"
+            value={hora}
+            onChange={(e) => setHora(e.target.value)}
+            className={selectCls}
+          />
+        </Etiquetado>
       </div>
 
       <Button type="submit" size="lg" className="mt-5 w-full">
@@ -198,7 +237,7 @@ function QuickBook({
 const selectCls =
   "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20";
 
-function Labeled({
+function Etiquetado({
   label,
   className,
   children,

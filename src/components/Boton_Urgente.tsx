@@ -10,22 +10,22 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { specialties } from "@/lib/appointments";
+import { ESPECIALIDADES } from "@/logica/citas";
 import { toast } from "sonner";
 
-export function UrgentFab() {
-  const [open, setOpen] = useState(false);
-  const [specialty, setSpecialty] = useState(specialties[0]);
+export function Boton_Urgente() {
+  const [abierto, setAbierto] = useState(false);
+  const [especialidad, setEspecialidad] = useState(ESPECIALIDADES[0]);
 
-  function confirm() {
-    setOpen(false);
+  function confirmar() {
+    setAbierto(false);
     toast.success("Cita urgente solicitada", {
-      description: `${specialty} · te contactaremos en breve para confirmar la hora.`,
+      description: `${especialidad} · te contactaremos en breve para confirmar la hora.`,
     });
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={abierto} onOpenChange={setAbierto}>
       <DialogTrigger asChild>
         <button
           aria-label="Agendar cita urgente"
@@ -55,11 +55,11 @@ export function UrgentFab() {
               Especialidad
             </label>
             <select
-              value={specialty}
-              onChange={(e) => setSpecialty(e.target.value)}
+              value={especialidad}
+              onChange={(e) => setEspecialidad(e.target.value)}
               className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
-              {specialties.map((s) => (
+              {ESPECIALIDADES.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
@@ -78,10 +78,10 @@ export function UrgentFab() {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => setAbierto(false)}>
             Cancelar
           </Button>
-          <Button variant="urgent" onClick={confirm}>
+          <Button variant="urgent" onClick={confirmar}>
             <BellRing className="size-4" />
             Confirmar urgencia
           </Button>

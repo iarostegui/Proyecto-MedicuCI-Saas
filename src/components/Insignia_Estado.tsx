@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import type { AppointmentStatus } from "@/lib/appointments";
+import type { EstadoCita } from "@/logica/citas";
 
-const styles: Record<AppointmentStatus, string> = {
+const estilos: Record<EstadoCita, string> = {
   confirmada: "bg-success/12 text-success ring-success/20",
   pendiente: "bg-warning/15 text-warning-foreground ring-warning/30",
   completada: "bg-muted text-muted-foreground ring-border",
@@ -9,7 +9,7 @@ const styles: Record<AppointmentStatus, string> = {
   urgente: "bg-urgent/12 text-urgent ring-urgent/25",
 };
 
-const labels: Record<AppointmentStatus, string> = {
+const etiquetas: Record<EstadoCita, string> = {
   confirmada: "Confirmada",
   pendiente: "Pendiente",
   completada: "Completada",
@@ -17,16 +17,16 @@ const labels: Record<AppointmentStatus, string> = {
   urgente: "Urgente",
 };
 
-export function StatusBadge({ status }: { status: AppointmentStatus }) {
+export function Insignia_Estado({ estado }: { estado: EstadoCita }) {
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset",
-        styles[status],
+        estilos[estado],
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
-      {labels[status]}
+      {etiquetas[estado]}
     </span>
   );
 }
