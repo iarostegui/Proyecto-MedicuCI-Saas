@@ -12,10 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as Panel_principalRouteImport } from './routes/panel_principal'
 import { Route as Panel_medicoRouteImport } from './routes/panel_medico'
-import { Route as PanelRouteImport } from './routes/panel'
 import { Route as Inicio_sesionRouteImport } from './routes/inicio_sesion'
 import { Route as Historial_citasRouteImport } from './routes/historial_citas'
-import { Route as HistorialRouteImport } from './routes/historial'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -33,11 +31,6 @@ const Panel_medicoRoute = Panel_medicoRouteImport.update({
   path: '/panel_medico',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PanelRoute = PanelRouteImport.update({
-  id: '/panel',
-  path: '/panel',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const Inicio_sesionRoute = Inicio_sesionRouteImport.update({
   id: '/inicio_sesion',
   path: '/inicio_sesion',
@@ -48,11 +41,6 @@ const Historial_citasRoute = Historial_citasRouteImport.update({
   path: '/historial_citas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HistorialRoute = HistorialRouteImport.update({
-  id: '/historial',
-  path: '/historial',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -61,20 +49,16 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/historial': typeof HistorialRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
-  '/panel': typeof PanelRoute
   '/panel_medico': typeof Panel_medicoRoute
   '/panel_principal': typeof Panel_principalRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/historial': typeof HistorialRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
-  '/panel': typeof PanelRoute
   '/panel_medico': typeof Panel_medicoRoute
   '/panel_principal': typeof Panel_principalRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -82,10 +66,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/historial': typeof HistorialRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
-  '/panel': typeof PanelRoute
   '/panel_medico': typeof Panel_medicoRoute
   '/panel_principal': typeof Panel_principalRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -94,30 +76,24 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/historial'
     | '/historial_citas'
     | '/inicio_sesion'
-    | '/panel'
     | '/panel_medico'
     | '/panel_principal'
     | '/sitemap.xml'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/historial'
     | '/historial_citas'
     | '/inicio_sesion'
-    | '/panel'
     | '/panel_medico'
     | '/panel_principal'
     | '/sitemap.xml'
   id:
     | '__root__'
     | '/'
-    | '/historial'
     | '/historial_citas'
     | '/inicio_sesion'
-    | '/panel'
     | '/panel_medico'
     | '/panel_principal'
     | '/sitemap.xml'
@@ -125,10 +101,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  HistorialRoute: typeof HistorialRoute
   Historial_citasRoute: typeof Historial_citasRoute
   Inicio_sesionRoute: typeof Inicio_sesionRoute
-  PanelRoute: typeof PanelRoute
   Panel_medicoRoute: typeof Panel_medicoRoute
   Panel_principalRoute: typeof Panel_principalRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -157,13 +131,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Panel_medicoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/panel': {
-      id: '/panel'
-      path: '/panel'
-      fullPath: '/panel'
-      preLoaderRoute: typeof PanelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/inicio_sesion': {
       id: '/inicio_sesion'
       path: '/inicio_sesion'
@@ -178,13 +145,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Historial_citasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/historial': {
-      id: '/historial'
-      path: '/historial'
-      fullPath: '/historial'
-      preLoaderRoute: typeof HistorialRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -197,10 +157,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  HistorialRoute: HistorialRoute,
   Historial_citasRoute: Historial_citasRoute,
   Inicio_sesionRoute: Inicio_sesionRoute,
-  PanelRoute: PanelRoute,
   Panel_medicoRoute: Panel_medicoRoute,
   Panel_principalRoute: Panel_principalRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
