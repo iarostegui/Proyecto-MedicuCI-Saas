@@ -10,18 +10,78 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ESPECIALIDADES } from "@/logica/citas";
+import { SEDES, type Sede } from "@/datos/sedes";
+import { listarEspecialidades, medicosPorEspecialidadYSede } from "@/logica/medicos";
+import { crearCita } from "@/logica/citas";
+import { obtenerSesion } from "@/logica/autenticacion";
+import { slotsDisponibles, fechasDisponibles } from "@/logica/disponibilidad";
 import { toast } from "sonner";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 export function Boton_Urgente() {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const especialidades = listarEspecialidades();
   const [abierto, setAbierto] = useState(false);
-  const [especialidad, setEspecialidad] = useState(ESPECIALIDADES[0]);
+  const [especialidad, setEspecialidad] = useState(especialidades[0] ?? "");
+  const [sede, setSede] = useState<Sede>(SEDES[0]);
+
+  // Ocultar en rutas médicas
+  if (pathname.startsWith("/panel_medico") || pathname.startsWith("/disponibilidad_medico")) {
+    return null;
+  }
 
   function confirmar() {
-    setAbierto(false);
-    toast.success("Cita urgente solicitada", {
-      description: `${especialidad} · te contactaremos en breve para confirmar la hora.`,
+    const sesion = obtenerSesion();
+    if (!sesion || sesion.rol !== "Paciente") {
+      toast.error("Debes iniciar sesión como paciente.");
+      setAbierto(false);
+      navigate({ to: "/inicio_sesion" });
+      return;
+    }
+
+    const medicos = medicosPorEspecialidadYSede(especialidad, sede);
+    const doctor = medicos[0];
+    if (!doctor) {
+      toast.error("No hay médicos de esta especialidad en la sede seleccionada.");
+      return;
+    }
+
+    // Buscar primer slot disponible
+    const fechas = fechasDisponibles(doctor.id, 14);
+    let fechaElegida = "";
+    let horaElegida = "";
+    for (const f of fechas) {
+      const slots = slotsDisponibles(doctor.id, f);
+      if (slots.length > 0) {
+        fechaElegida = f;
+        horaElegida = slots[0];
+        break;
+      }
+    }
+    if (!fechaElegida) {
+      toast.error("No hay horarios disponibles en los próximos 14 días.");
+      return;
+    }
+
+    const cita = crearCita({
+      pacienteCorreo: sesion.correo,
+      pacienteNombre: sesion.nombre,
+      doctorId: doctor.id,
+      doctorNombre: doctor.nombre,
+      especialidad,
+      sede,
+      fecha: fechaElegida,
+      hora: horaElegida,
+      esUrgente: true,
+      observaciones: "Cita urgente solicitada desde el botón rápido.",
     });
+
+    setAbierto(false);
+    toast.success("Cita urgente agendada", {
+      description: `${cita.especialidad} · ${cita.fecha} a las ${cita.hora}. Código ${cita.codigo}.`,
+    });
+    navigate({ to: "/historial_citas" });
   }
 
   return (
@@ -45,11 +105,25 @@ export function Boton_Urgente() {
           </div>
           <DialogTitle className="text-xl">Solicitar atención urgente</DialogTitle>
           <DialogDescription>
-            Reservamos el primer cupo disponible y te avisamos de inmediato.
+            Reservamos el primer cupo disponible en la sede elegida.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Sede
+            </label>
+            <select
+              value={sede}
+              onChange={(e) => setSede(e.target.value as Sede)}
+              className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            >
+              {SEDES.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Especialidad
@@ -57,9 +131,9 @@ export function Boton_Urgente() {
             <select
               value={especialidad}
               onChange={(e) => setEspecialidad(e.target.value)}
-              className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20"
+              className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
-              {ESPECIALIDADES.map((s) => (
+              {especialidades.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
