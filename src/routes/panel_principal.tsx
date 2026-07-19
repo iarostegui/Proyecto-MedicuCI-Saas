@@ -1,19 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Plus, Clock, MapPin, CalendarPlus, Stethoscope, X } from "lucide-react";
-import { Cascara_App } from "@/components/Cascara_App";
-import { Insignia_Estado } from "@/components/Insignia_Estado";
-import { Button } from "@/components/ui/button";
 import {
-  CITAS_PROXIMAS_SEMILLA,
-  DOCTORES,
-  ESPECIALIDADES,
+  CalendarPlus,
+  Clock,
+  MapPin,
+  Stethoscope,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle2,
+} from "lucide-react";
+import { Cascara_App } from "@/components/Cascara_App";
+import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { SEDES, type Sede } from "@/datos/sedes";
+import {
+  citasDePaciente,
+  crearCita,
   formatearFechaLarga,
   type Cita,
 } from "@/logica/citas";
-import { obtenerSesion } from "@/logica/autenticacion";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import {
+  listarEspecialidades,
+  medicosPorEspecialidadYSede,
+} from "@/logica/medicos";
+import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
+import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
 
 export const Route = createFileRoute("/panel_principal")({
   head: () => ({
@@ -21,7 +35,7 @@ export const Route = createFileRoute("/panel_principal")({
       { title: "Panel · Medicu CI" },
       {
         name: "description",
-        content: "Agenda una cita rápida y consulta tus citas próximas.",
+        content: "Agenda una cita y consulta tus próximas citas.",
       },
     ],
   }),
@@ -30,47 +44,55 @@ export const Route = createFileRoute("/panel_principal")({
 
 function Pagina_Panel_Principal() {
   const navigate = useNavigate();
-  const [nombreUsuario, setNombreUsuario] = useState<string>("");
-  const [citas, setCitas] = useState<Cita[]>(CITAS_PROXIMAS_SEMILLA);
+  const [sesion, setSesion] = useState<SesionActiva | null>(null);
+  const [citas, setCitas] = useState<Cita[]>([]);
   const [abierto, setAbierto] = useState(false);
 
   useEffect(() => {
-    const sesion = obtenerSesion();
-    if (!sesion) {
+    const s = obtenerSesion();
+    if (!s) {
       navigate({ to: "/inicio_sesion" });
       return;
     }
-    if (sesion.rol === "Medico") {
+    if (s.rol === "Medico") {
       navigate({ to: "/panel_medico" });
       return;
     }
-    setNombreUsuario(sesion.nombre);
+    setSesion(s);
+    setCitas(
+      citasDePaciente(s.correo)
+        .filter((c) => c.estado !== "Cancelada" && c.estado !== "Atendida")
+        .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)),
+    );
   }, [navigate]);
 
   const agrupadas = useMemo(() => {
     const map = new Map<string, Cita[]>();
-    [...citas]
-      .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora))
-      .forEach((c) => {
-        const arr = map.get(c.fecha) ?? [];
-        arr.push(c);
-        map.set(c.fecha, arr);
-      });
+    citas.forEach((c) => {
+      const arr = map.get(c.fecha) ?? [];
+      arr.push(c);
+      map.set(c.fecha, arr);
+    });
     return [...map.entries()];
   }, [citas]);
 
-  function agregarCita(c: Cita) {
-    setCitas((prev) => [...prev, c]);
+  function alGuardar(c: Cita) {
+    setCitas((prev) =>
+      [...prev, c].sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)),
+    );
     toast.success("Cita agendada", {
-      description: `${c.especialidad} · ${formatearFechaLarga(c.fecha)} a las ${c.hora}`,
+      description: `${c.especialidad} · ${formatearFechaLarga(c.fecha)} a las ${c.hora}. Código ${c.codigo}.`,
     });
+    setAbierto(false);
   }
+
+  if (!sesion) return null;
 
   return (
     <Cascara_App>
       <section className="mb-8">
         <p className="text-sm font-medium text-primary">
-          Hola{nombreUsuario ? `, ${nombreUsuario.split(" ")[0]}` : ""} 👋
+          Hola, {sesion.nombre.split(" ")[0]} 👋
         </p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
           Tus próximas citas
@@ -82,7 +104,11 @@ function Pagina_Panel_Principal() {
       </section>
 
       {abierto ? (
-        <Reserva_Rapida onCerrar={() => setAbierto(false)} onGuardar={agregarCita} />
+        <Asistente_Reserva
+          sesion={sesion}
+          onCerrar={() => setAbierto(false)}
+          onGuardar={alGuardar}
+        />
       ) : (
         <button
           onClick={() => setAbierto(true)}
@@ -92,90 +118,137 @@ function Pagina_Panel_Principal() {
             <CalendarPlus className="size-6" />
           </span>
           <span>
-            <span className="block font-semibold text-foreground">Agendar nueva cita</span>
+            <span className="block font-semibold text-foreground">
+              Agendar nueva cita
+            </span>
             <span className="block text-sm text-muted-foreground">
-              Elige especialidad, fecha y hora en segundos
+              Elige sede, especialidad, doctor, fecha y hora
             </span>
           </span>
-          <Plus className="ml-auto size-5 text-primary" />
+          <ChevronRight className="ml-auto size-5 text-primary" />
         </button>
       )}
 
-      <div className="space-y-8">
-        {agrupadas.map(([fecha, items]) => (
-          <div key={fecha}>
-            <h2 className="mb-3 border-b border-border pb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground first-letter:uppercase">
-              {formatearFechaLarga(fecha)}
-            </h2>
-            <ul className="space-y-3">
-              {items.map((c) => (
-                <li
-                  key={c.id}
-                  className="animate-rise group flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-card)]"
-                >
-                  <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft py-2 text-primary">
-                    <Clock className="mb-0.5 size-4" />
-                    <span className="text-sm font-bold leading-none">{c.hora}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold">{c.especialidad}</p>
-                    <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
-                      <Stethoscope className="size-3.5 shrink-0" />
-                      {c.doctor}
-                    </p>
-                    <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                      <MapPin className="size-3 shrink-0" />
-                      {c.ubicacion}
-                    </p>
-                  </div>
-                  <Insignia_Estado estado={c.estado} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
+      {agrupadas.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-muted-foreground">
+          Aún no tienes citas programadas.
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {agrupadas.map(([fecha, items]) => (
+            <div key={fecha}>
+              <h2 className="mb-3 border-b border-border pb-2 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground first-letter:uppercase">
+                {formatearFechaLarga(fecha)}
+              </h2>
+              <ul className="space-y-3">
+                {items.map((c) => (
+                  <li
+                    key={c.codigo}
+                    className="animate-rise flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-soft)]"
+                  >
+                    <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft py-2 text-primary">
+                      <Clock className="mb-0.5 size-4" />
+                      <span className="text-sm font-bold leading-none">{c.hora}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <p className="truncate font-semibold">{c.especialidad}</p>
+                        {c.esUrgente && <Insignia_Urgente />}
+                      </div>
+                      <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
+                        <Stethoscope className="size-3.5 shrink-0" />
+                        {c.doctorNombre}
+                      </p>
+                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                        <MapPin className="size-3 shrink-0" />
+                        {c.sede}
+                      </p>
+                    </div>
+                    <Insignia_Estado estado={c.estado} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </Cascara_App>
   );
 }
 
-function Reserva_Rapida({
+// -------------------- Asistente de reserva --------------------
+
+type Paso = 1 | 2 | 3 | 4 | 5;
+const ETIQUETAS_PASOS: Record<Paso, string> = {
+  1: "Sede",
+  2: "Especialidad",
+  3: "Doctor",
+  4: "Fecha",
+  5: "Hora",
+};
+
+function Asistente_Reserva({
+  sesion,
   onCerrar,
   onGuardar,
 }: {
+  sesion: SesionActiva;
   onCerrar: () => void;
   onGuardar: (c: Cita) => void;
 }) {
-  const [especialidad, setEspecialidad] = useState(ESPECIALIDADES[0]);
-  const [doctor, setDoctor] = useState(DOCTORES[0]);
-  const [fecha, setFecha] = useState(
-    new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
-  );
-  const [hora, setHora] = useState("10:00");
+  const [paso, setPaso] = useState<Paso>(1);
+  const [sede, setSede] = useState<Sede | "">("");
+  const [especialidad, setEspecialidad] = useState<string>("");
+  const [doctorId, setDoctorId] = useState<string>("");
+  const [fecha, setFecha] = useState<string>("");
+  const [hora, setHora] = useState<string>("");
 
-  function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    onGuardar({
-      id: crypto.randomUUID(),
+  const especialidades = useMemo(() => listarEspecialidades(), []);
+  const doctores = useMemo(
+    () =>
+      sede && especialidad
+        ? medicosPorEspecialidadYSede(especialidad, sede as Sede)
+        : [],
+    [sede, especialidad],
+  );
+  const doctorSel = doctores.find((d) => d.id === doctorId);
+  const fechas = useMemo(
+    () => (doctorId ? fechasDisponibles(doctorId, 21) : []),
+    [doctorId],
+  );
+  const slots = useMemo(
+    () => (doctorId && fecha ? slotsDisponibles(doctorId, fecha) : []),
+    [doctorId, fecha],
+  );
+
+  function confirmar() {
+    if (!sede || !especialidad || !doctorSel || !fecha || !hora) return;
+    const nueva = crearCita({
+      pacienteCorreo: sesion.correo,
+      pacienteNombre: sesion.nombre,
+      doctorId: doctorSel.id,
+      doctorNombre: doctorSel.nombre,
       especialidad,
-      doctor,
-      ubicacion: "Torre Médica · por confirmar",
+      sede,
       fecha,
       hora,
-      estado: "pendiente",
     });
-    onCerrar();
+    onGuardar(nueva);
   }
 
+  const puedeAvanzar =
+    (paso === 1 && !!sede) ||
+    (paso === 2 && !!especialidad) ||
+    (paso === 3 && !!doctorId) ||
+    (paso === 4 && !!fecha) ||
+    paso === 5;
+
   return (
-    <form
-      onSubmit={guardar}
-      className="animate-rise mb-8 rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-card)]"
-    >
+    <div className="animate-rise mb-8 rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-card)]">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 font-bold">
           <CalendarPlus className="size-5 text-primary" />
-          Nueva cita
+          Nueva cita · Paso {paso} de 5 — {ETIQUETAS_PASOS[paso]}
         </h2>
         <button
           type="button"
@@ -186,72 +259,166 @@ function Reserva_Rapida({
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Etiquetado label="Especialidad" className="sm:col-span-2">
-          <select
-            value={especialidad}
-            onChange={(e) => setEspecialidad(e.target.value)}
-            className={selectCls}
-          >
-            {ESPECIALIDADES.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </Etiquetado>
-        <Etiquetado label="Profesional" className="sm:col-span-2">
-          <select
-            value={doctor}
-            onChange={(e) => setDoctor(e.target.value)}
-            className={selectCls}
-          >
-            {DOCTORES.map((d) => (
-              <option key={d}>{d}</option>
-            ))}
-          </select>
-        </Etiquetado>
-        <Etiquetado label="Fecha">
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-            className={selectCls}
+      {/* Progreso */}
+      <div className="mb-5 flex gap-1.5">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <div
+            key={n}
+            className={cn(
+              "h-1.5 flex-1 rounded-full",
+              n <= paso ? "bg-primary" : "bg-secondary",
+            )}
           />
-        </Etiquetado>
-        <Etiquetado label="Hora">
-          <input
-            type="time"
-            value={hora}
-            onChange={(e) => setHora(e.target.value)}
-            className={selectCls}
-          />
-        </Etiquetado>
+        ))}
       </div>
 
-      <Button type="submit" size="lg" className="mt-5 w-full">
-        Confirmar cita
-      </Button>
-    </form>
+      {paso === 1 && (
+        <Opciones
+          items={SEDES.map((s) => ({ id: s, label: s }))}
+          seleccionado={sede}
+          onElegir={(v) => setSede(v as Sede)}
+        />
+      )}
+      {paso === 2 && (
+        <Opciones
+          items={especialidades.map((s) => ({ id: s, label: s }))}
+          seleccionado={especialidad}
+          onElegir={setEspecialidad}
+        />
+      )}
+      {paso === 3 &&
+        (doctores.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            No hay médicos de {especialidad} en {sede}. Vuelve y elige otra combinación.
+          </p>
+        ) : (
+          <Opciones
+            items={doctores.map((d) => ({ id: d.id, label: d.nombre, sub: d.especialidad }))}
+            seleccionado={doctorId}
+            onElegir={setDoctorId}
+          />
+        ))}
+      {paso === 4 &&
+        (fechas.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            El médico no tiene fechas habilitadas en los próximos 21 días.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {fechas.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFecha(f)}
+                className={cn(
+                  "rounded-xl border p-3 text-left text-sm transition-colors",
+                  f === fecha
+                    ? "border-primary bg-primary-soft text-primary"
+                    : "border-border hover:bg-secondary",
+                )}
+              >
+                <div className="font-semibold">{formatearFechaLarga(f)}</div>
+                <div className="text-xs text-muted-foreground">{f}</div>
+              </button>
+            ))}
+          </div>
+        ))}
+      {paso === 5 && (
+        <>
+          {slots.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              No quedan horarios libres ese día. Elige otra fecha.
+            </p>
+          ) : (
+            <div className="mb-5 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {slots.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setHora(h)}
+                  className={cn(
+                    "rounded-lg border py-2 text-sm font-medium transition-colors",
+                    h === hora
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border hover:bg-secondary",
+                  )}
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {hora && (
+            <div className="rounded-xl bg-secondary/60 p-4 text-sm">
+              <p className="mb-2 flex items-center gap-2 font-semibold text-foreground">
+                <CheckCircle2 className="size-4 text-primary" />
+                Resumen de la cita
+              </p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li><b>Sede:</b> {sede}</li>
+                <li><b>Especialidad:</b> {especialidad}</li>
+                <li><b>Doctor:</b> {doctorSel?.nombre}</li>
+                <li><b>Fecha:</b> {formatearFechaLarga(fecha)}</li>
+                <li><b>Hora:</b> {hora}</li>
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="mt-5 flex items-center justify-between gap-2">
+        <Button
+          variant="ghost"
+          onClick={() => setPaso((p) => (p > 1 ? ((p - 1) as Paso) : p))}
+          disabled={paso === 1}
+        >
+          <ChevronLeft className="size-4" /> Atrás
+        </Button>
+        {paso < 5 ? (
+          <Button
+            onClick={() => setPaso((p) => ((p + 1) as Paso))}
+            disabled={!puedeAvanzar}
+          >
+            Siguiente <ChevronRight className="size-4" />
+          </Button>
+        ) : (
+          <Button onClick={confirmar} disabled={!hora}>
+            Confirmar cita
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
-const selectCls =
-  "h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20";
-
-function Etiquetado({
-  label,
-  className,
-  children,
+function Opciones({
+  items,
+  seleccionado,
+  onElegir,
 }: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
+  items: { id: string; label: string; sub?: string }[];
+  seleccionado: string;
+  onElegir: (id: string) => void;
 }) {
   return (
-    <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </label>
+    <div className="grid gap-2 sm:grid-cols-2">
+      {items.map((it) => (
+        <button
+          key={it.id}
+          type="button"
+          onClick={() => onElegir(it.id)}
+          className={cn(
+            "rounded-xl border p-3 text-left text-sm transition-colors",
+            it.id === seleccionado
+              ? "border-primary bg-primary-soft text-primary"
+              : "border-border hover:bg-secondary",
+          )}
+        >
+          <div className="font-semibold">{it.label}</div>
+          {it.sub && <div className="text-xs text-muted-foreground">{it.sub}</div>}
+        </button>
+      ))}
+    </div>
   );
 }

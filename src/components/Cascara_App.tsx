@@ -1,19 +1,25 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { CalendarDays, History, HeartPulse, LogOut } from "lucide-react";
+import { CalendarDays, History, HeartPulse, LogOut, Stethoscope, Settings2 } from "lucide-react";
 import { Boton_Urgente } from "@/components/Boton_Urgente";
 import { useSesion } from "@/hooks/useSesion";
 import { cn } from "@/lib/utils";
 
-const navegacion = [
+const navPaciente = [
   { to: "/panel_principal", label: "Panel", icon: CalendarDays },
   { to: "/historial_citas", label: "Historial", icon: History },
+] as const;
+const navMedico = [
+  { to: "/panel_medico", label: "Citas", icon: Stethoscope },
+  { to: "/disponibilidad_medico", label: "Disponibilidad", icon: Settings2 },
 ] as const;
 
 export function Cascara_App({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { cerrarSesion } = useSesion();
+  const { rol, cerrarSesion } = useSesion();
+  const navegacion = rol === "Medico" ? navMedico : navPaciente;
+  const inicioLink = rol === "Medico" ? "/panel_medico" : "/panel_principal";
 
   function handleCerrarSesion() {
     cerrarSesion();
@@ -24,7 +30,7 @@ export function Cascara_App({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-5">
-          <Link to="/panel_principal" className="flex items-center gap-2.5">
+          <Link to={inicioLink} className="flex items-center gap-2.5">
             <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-soft)]">
               <HeartPulse className="size-5" />
             </span>

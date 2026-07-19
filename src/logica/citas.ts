@@ -1,124 +1,145 @@
-// Datos y utilidades de citas. En Fase 1 se mantienen los seeds existentes
-// para no romper el panel ni el historial; Fase 2 los reemplaza por citas reales.
+// Modelo de citas persistidas en LocalStorage bajo la clave `medicu:citas`.
+import type { Sede } from "@/datos/sedes";
 
-export type EstadoCita =
-  | "confirmada"
-  | "pendiente"
-  | "completada"
-  | "cancelada"
-  | "urgente";
+export type EstadoCita = "Programada" | "Reprogramada" | "Cancelada" | "Atendida";
+
+export const ESTADOS_CITA: EstadoCita[] = [
+  "Programada",
+  "Reprogramada",
+  "Cancelada",
+  "Atendida",
+];
+
+export type MotivoCancelacion =
+  | "Emergencia médica"
+  | "Ausencia del médico"
+  | "Reprogramación institucional"
+  | "Otro";
+
+export const MOTIVOS_CANCELACION: MotivoCancelacion[] = [
+  "Emergencia médica",
+  "Ausencia del médico",
+  "Reprogramación institucional",
+  "Otro",
+];
 
 export interface Cita {
-  id: string;
+  codigo: string;
+  pacienteCorreo: string;
+  pacienteNombre: string;
+  pacienteDni?: string;
+  doctorId: string;
+  doctorNombre: string;
   especialidad: string;
-  doctor: string;
-  ubicacion: string;
-  fecha: string; // ISO
-  hora: string;
+  sede: Sede;
+  fecha: string; // YYYY-MM-DD
+  hora: string; // HH:mm
   estado: EstadoCita;
-  nota?: string;
+  esUrgente?: boolean;
+  observaciones?: string;
+  motivoCancelacion?: string;
+  motivoCancelacionDetalle?: string;
+  fechaCreacion: string; // ISO
 }
 
-export const ESPECIALIDADES = [
-  "Medicina General",
-  "Cardiología",
-  "Dermatología",
-  "Odontología",
-  "Pediatría",
-  "Oftalmología",
-  "Ginecología",
-  "Traumatología",
-];
+const CLAVE_CITAS = "medicu:citas";
+const CLAVE_CORRELATIVO = "medicu:correlativo";
 
-export const DOCTORES = [
-  "Dra. Elena Rivas",
-  "Dr. Julián Méndez",
-  "Dra. Sara Valdés",
-  "Dr. Roberto Salas",
-  "Dra. Ana Soto",
-  "Dr. Mario Vaca",
-];
+function store(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
-export const CITAS_PROXIMAS_SEMILLA: Cita[] = [
-  {
-    id: "u1",
-    especialidad: "Cardiología",
-    doctor: "Dr. Julián Méndez",
-    ubicacion: "Torre Médica · Consultorio 304",
-    fecha: new Date().toISOString().slice(0, 10),
-    hora: "09:30",
-    estado: "confirmada",
-  },
-  {
-    id: "u2",
-    especialidad: "Laboratorio · Análisis de sangre",
-    doctor: "Módulo B-12",
-    ubicacion: "Planta baja · Laboratorio",
-    fecha: new Date().toISOString().slice(0, 10),
-    hora: "15:15",
-    estado: "pendiente",
-  },
-  {
-    id: "u3",
-    especialidad: "Oftalmología",
-    doctor: "Dra. Elena Rivas",
-    ubicacion: "Torre Médica · Consultorio 210",
-    fecha: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-    hora: "11:00",
-    estado: "confirmada",
-  },
-];
+export function obtenerCitas(): Cita[] {
+  const s = store();
+  if (!s) return [];
+  try {
+    return JSON.parse(s.getItem(CLAVE_CITAS) || "[]") as Cita[];
+  } catch {
+    return [];
+  }
+}
 
-export const HISTORIAL_SEMILLA: Cita[] = [
-  {
-    id: "h1",
-    especialidad: "Medicina General",
-    doctor: "Dr. Mario Vaca",
-    ubicacion: "Chequeo anual",
-    fecha: "2026-05-14",
-    hora: "10:00",
-    estado: "completada",
-    nota: "Receta y resultados disponibles",
-  },
-  {
-    id: "h2",
-    especialidad: "Imagenología",
-    doctor: "Radiografía de tórax",
-    ubicacion: "Imagenología · Sala 2",
-    fecha: "2026-04-02",
-    hora: "08:45",
-    estado: "completada",
-    nota: "Resultados disponibles",
-  },
-  {
-    id: "h3",
-    especialidad: "Dermatología",
-    doctor: "Dra. Ana Soto",
-    ubicacion: "Torre Médica · Consultorio 118",
-    fecha: "2026-03-20",
-    hora: "16:30",
-    estado: "completada",
-  },
-  {
-    id: "h4",
-    especialidad: "Nutrición",
-    doctor: "Dra. Sara Valdés",
-    ubicacion: "Bienestar · Consultorio 4",
-    fecha: "2026-02-15",
-    hora: "12:00",
-    estado: "cancelada",
-  },
-  {
-    id: "h5",
-    especialidad: "Cardiología · Urgencia",
-    doctor: "Dr. Roberto Salas",
-    ubicacion: "Urgencias",
-    fecha: "2026-01-08",
-    hora: "21:40",
-    estado: "urgente",
-    nota: "Atención inmediata",
-  },
-];
+function guardarCitas(citas: Cita[]) {
+  const s = store();
+  if (!s) return;
+  s.setItem(CLAVE_CITAS, JSON.stringify(citas));
+}
+
+export function generarCodigoCita(): string {
+  const s = store();
+  const anio = new Date().getFullYear();
+  const claveAnio = `${CLAVE_CORRELATIVO}:${anio}`;
+  let n = 1;
+  if (s) {
+    n = parseInt(s.getItem(claveAnio) || "0", 10) + 1;
+    s.setItem(claveAnio, String(n));
+  }
+  return `CI-${anio}-${String(n).padStart(5, "0")}`;
+}
+
+export function crearCita(
+  datos: Omit<Cita, "codigo" | "estado" | "fechaCreacion"> & { estado?: EstadoCita },
+): Cita {
+  const nueva: Cita = {
+    ...datos,
+    codigo: generarCodigoCita(),
+    estado: datos.estado ?? "Programada",
+    fechaCreacion: new Date().toISOString(),
+  };
+  const todas = obtenerCitas();
+  todas.push(nueva);
+  guardarCitas(todas);
+  return nueva;
+}
+
+export function actualizarCita(codigo: string, cambios: Partial<Cita>): Cita | null {
+  const todas = obtenerCitas();
+  const idx = todas.findIndex((c) => c.codigo === codigo);
+  if (idx < 0) return null;
+  todas[idx] = { ...todas[idx], ...cambios };
+  guardarCitas(todas);
+  return todas[idx];
+}
+
+export function cancelarCita(
+  codigo: string,
+  motivo: string,
+  detalle?: string,
+): Cita | null {
+  return actualizarCita(codigo, {
+    estado: "Cancelada",
+    motivoCancelacion: motivo,
+    motivoCancelacionDetalle: detalle,
+  });
+}
+
+export function citasDePaciente(correo: string): Cita[] {
+  return obtenerCitas().filter(
+    (c) => c.pacienteCorreo.toLowerCase() === correo.toLowerCase(),
+  );
+}
+
+export function citasDeDoctor(doctorId: string): Cita[] {
+  return obtenerCitas().filter((c) => c.doctorId === doctorId);
+}
+
+/** Está el slot ocupado por otra cita activa (no cancelada). */
+export function slotOcupado(doctorId: string, fecha: string, hora: string): boolean {
+  return obtenerCitas().some(
+    (c) =>
+      c.doctorId === doctorId &&
+      c.fecha === fecha &&
+      c.hora === hora &&
+      c.estado !== "Cancelada",
+  );
+}
+
+// ---------- Helpers de fecha ----------
 
 export function formatearFechaLarga(iso: string): string {
   const d = new Date(iso + "T00:00:00");
