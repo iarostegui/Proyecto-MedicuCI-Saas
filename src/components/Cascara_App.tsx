@@ -17,7 +17,9 @@ const navMedico = [
 export function Cascara_App({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { cerrarSesion } = useSesion();
+  const { rol, cerrarSesion } = useSesion();
+  const navegacion = rol === "Medico" ? navMedico : navPaciente;
+  const inicioLink = rol === "Medico" ? "/panel_medico" : "/panel_principal";
 
   function handleCerrarSesion() {
     cerrarSesion();
@@ -28,7 +30,7 @@ export function Cascara_App({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-5">
-          <Link to="/panel_principal" className="flex items-center gap-2.5">
+          <Link to={inicioLink} className="flex items-center gap-2.5">
             <span className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-soft)]">
               <HeartPulse className="size-5" />
             </span>
