@@ -1,13 +1,17 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { CalendarDays, History, HeartPulse, LogOut } from "lucide-react";
+import { CalendarDays, History, HeartPulse, LogOut, Stethoscope, Settings2 } from "lucide-react";
 import { Boton_Urgente } from "@/components/Boton_Urgente";
 import { useSesion } from "@/hooks/useSesion";
 import { cn } from "@/lib/utils";
 
-const navegacion = [
+const navPaciente = [
   { to: "/panel_principal", label: "Panel", icon: CalendarDays },
   { to: "/historial_citas", label: "Historial", icon: History },
+] as const;
+const navMedico = [
+  { to: "/panel_medico", label: "Citas", icon: Stethoscope },
+  { to: "/disponibilidad_medico", label: "Disponibilidad", icon: Settings2 },
 ] as const;
 
 export function Cascara_App({ children }: { children: ReactNode }) {
