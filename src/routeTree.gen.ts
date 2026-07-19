@@ -14,6 +14,7 @@ import { Route as Panel_principalRouteImport } from './routes/panel_principal'
 import { Route as Panel_medicoRouteImport } from './routes/panel_medico'
 import { Route as Inicio_sesionRouteImport } from './routes/inicio_sesion'
 import { Route as Historial_citasRouteImport } from './routes/historial_citas'
+import { Route as Disponibilidad_medicoRouteImport } from './routes/disponibilidad_medico'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -41,6 +42,11 @@ const Historial_citasRoute = Historial_citasRouteImport.update({
   path: '/historial_citas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Disponibilidad_medicoRoute = Disponibilidad_medicoRouteImport.update({
+  id: '/disponibilidad_medico',
+  path: '/disponibilidad_medico',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/disponibilidad_medico': typeof Disponibilidad_medicoRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
   '/panel_medico': typeof Panel_medicoRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/disponibilidad_medico': typeof Disponibilidad_medicoRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
   '/panel_medico': typeof Panel_medicoRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/disponibilidad_medico': typeof Disponibilidad_medicoRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
   '/panel_medico': typeof Panel_medicoRoute
@@ -76,6 +85,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/disponibilidad_medico'
     | '/historial_citas'
     | '/inicio_sesion'
     | '/panel_medico'
@@ -84,6 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/disponibilidad_medico'
     | '/historial_citas'
     | '/inicio_sesion'
     | '/panel_medico'
@@ -92,6 +103,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/disponibilidad_medico'
     | '/historial_citas'
     | '/inicio_sesion'
     | '/panel_medico'
@@ -101,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  Disponibilidad_medicoRoute: typeof Disponibilidad_medicoRoute
   Historial_citasRoute: typeof Historial_citasRoute
   Inicio_sesionRoute: typeof Inicio_sesionRoute
   Panel_medicoRoute: typeof Panel_medicoRoute
@@ -145,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Historial_citasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/disponibilidad_medico': {
+      id: '/disponibilidad_medico'
+      path: '/disponibilidad_medico'
+      fullPath: '/disponibilidad_medico'
+      preLoaderRoute: typeof Disponibilidad_medicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -157,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  Disponibilidad_medicoRoute: Disponibilidad_medicoRoute,
   Historial_citasRoute: Historial_citasRoute,
   Inicio_sesionRoute: Inicio_sesionRoute,
   Panel_medicoRoute: Panel_medicoRoute,
