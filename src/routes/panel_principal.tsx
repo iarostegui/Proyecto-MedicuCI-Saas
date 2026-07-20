@@ -226,11 +226,14 @@ function Asistente_Reserva({
   const [fecha, setFecha] = useState<string>("");
   const [hora, setHora] = useState<string>("");
 
-  const especialidades = useMemo(() => listarEspecialidades(), []);
+  const especialidades = useMemo(
+    () => (sede ? especialidadesDisponiblesEnSede(sede as Sede) : []),
+    [sede],
+  );
   const doctores = useMemo(
     () =>
       sede && especialidad
-        ? medicosPorEspecialidadYSede(especialidad, sede as Sede)
+        ? medicosDisponibles(especialidad, sede as Sede)
         : [],
     [sede, especialidad],
   );
@@ -243,6 +246,13 @@ function Asistente_Reserva({
     () => (doctorId && fecha ? slotsDisponibles(doctorId, fecha) : []),
     [doctorId, fecha],
   );
+
+  // Reset dependientes cuando cambia un paso previo
+  useEffect(() => { setEspecialidad(""); setDoctorId(""); setFecha(""); setHora(""); }, [sede]);
+  useEffect(() => { setDoctorId(""); setFecha(""); setHora(""); }, [especialidad]);
+  useEffect(() => { setFecha(""); setHora(""); }, [doctorId]);
+  useEffect(() => { setHora(""); }, [fecha]);
+
 
   function confirmar() {
     if (!sede || !especialidad || !doctorSel || !fecha || !hora) return;
