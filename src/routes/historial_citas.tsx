@@ -183,6 +183,7 @@ function Pagina_Historial_Citas() {
         <Detalle_Cita
           cita={seleccion}
           abierto={!!seleccion}
+          modo="historial"
           onCerrar={() => setSeleccion(null)}
           onCambio={() => {
             const s = obtenerSesion();
@@ -190,6 +191,7 @@ function Pagina_Historial_Citas() {
           }}
         />
       )}
+
     </Cascara_App>
   );
 }

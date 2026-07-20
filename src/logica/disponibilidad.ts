@@ -1,6 +1,7 @@
 // Configuración de disponibilidad por médico, persistida en LocalStorage.
 import { obtenerMedicos } from "@/logica/autenticacion";
 import { obtenerCitas } from "@/logica/citas";
+import { DISPONIBILIDAD_INICIAL } from "@/datos/disponibilidad_inicial";
 
 export interface Disponibilidad {
   doctorId: string;
@@ -51,7 +52,8 @@ export function inicializarDisponibilidad() {
   let cambio = false;
   for (const m of obtenerMedicos()) {
     if (!data[m.id]) {
-      data[m.id] = { doctorId: m.id, ...DEFECTO };
+      const semilla = DISPONIBILIDAD_INICIAL[m.id] ?? DEFECTO;
+      data[m.id] = { doctorId: m.id, ...semilla };
       cambio = true;
     }
   }
@@ -60,7 +62,9 @@ export function inicializarDisponibilidad() {
 
 export function obtenerDisponibilidad(doctorId: string): Disponibilidad {
   const data = leerTodo();
-  return data[doctorId] ?? { doctorId, ...DEFECTO };
+  if (data[doctorId]) return data[doctorId];
+  const semilla = DISPONIBILIDAD_INICIAL[doctorId] ?? DEFECTO;
+  return { doctorId, ...semilla };
 }
 
 export function guardarDisponibilidad(d: Disponibilidad) {
@@ -104,6 +108,14 @@ export function slotsDisponibles(doctorId: string, fecha: string): string[] {
       .map((c) => c.hora),
   );
   return slots.filter((s) => !ocupados.has(s));
+}
+
+/** ¿El médico tiene al menos un slot libre en los próximos N días? */
+export function medicoTieneCupo(doctorId: string, dias = 30): boolean {
+  for (const f of fechasDisponibles(doctorId, dias)) {
+    if (slotsDisponibles(doctorId, f).length > 0) return true;
+  }
+  return false;
 }
 
 export const DIAS_SEMANA_ETIQUETAS = [

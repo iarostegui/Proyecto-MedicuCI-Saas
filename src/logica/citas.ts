@@ -111,11 +111,50 @@ export function cancelarCita(
   motivo: string,
   detalle?: string,
 ): Cita | null {
+  const todas = obtenerCitas();
+  const actual = todas.find((c) => c.codigo === codigo);
+  const nota = detalle?.trim()
+    ? `Motivo de cancelación: ${motivo} — ${detalle.trim()}`
+    : `Motivo de cancelación: ${motivo}`;
+  const observaciones = actual?.observaciones
+    ? `${actual.observaciones}\n${nota}`
+    : nota;
   return actualizarCita(codigo, {
     estado: "Cancelada",
     motivoCancelacion: motivo,
     motivoCancelacionDetalle: detalle,
+    observaciones,
   });
+}
+
+/** Reprograma una cita activa a una nueva fecha/hora. */
+export function reprogramarCita(
+  codigo: string,
+  fecha: string,
+  hora: string,
+): { ok: true; cita: Cita } | { ok: false; error: string } {
+  const todas = obtenerCitas();
+  const actual = todas.find((c) => c.codigo === codigo);
+  if (!actual) return { ok: false, error: "Cita no encontrada." };
+  if (actual.estado === "Cancelada" || actual.estado === "Atendida") {
+    return { ok: false, error: "Esta cita ya no puede reprogramarse." };
+  }
+  const ocupado = todas.some(
+    (c) =>
+      c.codigo !== codigo &&
+      c.doctorId === actual.doctorId &&
+      c.fecha === fecha &&
+      c.hora === hora &&
+      c.estado !== "Cancelada",
+  );
+  if (ocupado) return { ok: false, error: "Ese horario ya está ocupado." };
+  const cita = actualizarCita(codigo, {
+    fecha,
+    hora,
+    estado: "Reprogramada",
+  });
+  if (!cita) return { ok: false, error: "No se pudo reprogramar." };
+  return { ok: true, cita };
 }
 
 export function citasDePaciente(correo: string): Cita[] {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   CalendarPlus,
@@ -9,9 +9,11 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
+  Info,
 } from "lucide-react";
 import { Cascara_App } from "@/components/Cascara_App";
-import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
+import { Insignia_Urgente } from "@/components/Insignia_Estado";
+import { Detalle_Cita } from "@/components/Detalle_Cita";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -23,11 +25,12 @@ import {
   type Cita,
 } from "@/logica/citas";
 import {
-  listarEspecialidades,
-  medicosPorEspecialidadYSede,
+  especialidadesDisponiblesEnSede,
+  medicosDisponibles,
 } from "@/logica/medicos";
 import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
 import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
+
 
 export const Route = createFileRoute("/panel_principal")({
   head: () => ({
@@ -47,6 +50,15 @@ function Pagina_Panel_Principal() {
   const [sesion, setSesion] = useState<SesionActiva | null>(null);
   const [citas, setCitas] = useState<Cita[]>([]);
   const [abierto, setAbierto] = useState(false);
+  const [detalle, setDetalle] = useState<Cita | null>(null);
+
+  const recargar = useCallback((correo: string) => {
+    setCitas(
+      citasDePaciente(correo)
+        .filter((c) => c.estado !== "Cancelada" && c.estado !== "Atendida")
+        .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)),
+    );
+  }, []);
 
   useEffect(() => {
     const s = obtenerSesion();
@@ -59,12 +71,8 @@ function Pagina_Panel_Principal() {
       return;
     }
     setSesion(s);
-    setCitas(
-      citasDePaciente(s.correo)
-        .filter((c) => c.estado !== "Cancelada" && c.estado !== "Atendida")
-        .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)),
-    );
-  }, [navigate]);
+    recargar(s.correo);
+  }, [navigate, recargar]);
 
   const agrupadas = useMemo(() => {
     const map = new Map<string, Cita[]>();
@@ -142,29 +150,31 @@ function Pagina_Panel_Principal() {
               </h2>
               <ul className="space-y-3">
                 {items.map((c) => (
-                  <li
-                    key={c.codigo}
-                    className="animate-rise flex items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 shadow-[var(--shadow-soft)]"
-                  >
-                    <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft py-2 text-primary">
-                      <Clock className="mb-0.5 size-4" />
-                      <span className="text-sm font-bold leading-none">{c.hora}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-center gap-2">
-                        <p className="truncate font-semibold">{c.especialidad}</p>
-                        {c.esUrgente && <Insignia_Urgente />}
+                  <li key={c.codigo}>
+                    <button
+                      onClick={() => setDetalle(c)}
+                      className="animate-rise flex w-full items-center gap-4 rounded-2xl border border-border/70 bg-card p-4 text-left shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-card)]"
+                    >
+                      <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-soft py-2 text-primary">
+                        <Clock className="mb-0.5 size-4" />
+                        <span className="text-sm font-bold leading-none">{c.hora}</span>
                       </div>
-                      <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
-                        <Stethoscope className="size-3.5 shrink-0" />
-                        {c.doctorNombre}
-                      </p>
-                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                        <MapPin className="size-3 shrink-0" />
-                        {c.sede}
-                      </p>
-                    </div>
-                    <Insignia_Estado estado={c.estado} />
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center gap-2">
+                          <p className="truncate font-semibold">{c.especialidad}</p>
+                          {c.esUrgente && <Insignia_Urgente />}
+                        </div>
+                        <p className="flex items-center gap-1.5 truncate text-sm text-muted-foreground">
+                          <Stethoscope className="size-3.5 shrink-0" />
+                          {c.doctorNombre}
+                        </p>
+                        <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                          <MapPin className="size-3 shrink-0" />
+                          {c.sede}
+                        </p>
+                      </div>
+                      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -172,9 +182,22 @@ function Pagina_Panel_Principal() {
           ))}
         </div>
       )}
+
+      {detalle && (
+        <Detalle_Cita
+          cita={detalle}
+          abierto={!!detalle}
+          modo="panel"
+          onCerrar={() => setDetalle(null)}
+          onCambio={() => {
+            if (sesion) recargar(sesion.correo);
+          }}
+        />
+      )}
     </Cascara_App>
   );
 }
+
 
 // -------------------- Asistente de reserva --------------------
 
@@ -203,11 +226,14 @@ function Asistente_Reserva({
   const [fecha, setFecha] = useState<string>("");
   const [hora, setHora] = useState<string>("");
 
-  const especialidades = useMemo(() => listarEspecialidades(), []);
+  const especialidades = useMemo(
+    () => (sede ? especialidadesDisponiblesEnSede(sede as Sede) : []),
+    [sede],
+  );
   const doctores = useMemo(
     () =>
       sede && especialidad
-        ? medicosPorEspecialidadYSede(especialidad, sede as Sede)
+        ? medicosDisponibles(especialidad, sede as Sede)
         : [],
     [sede, especialidad],
   );
@@ -220,6 +246,13 @@ function Asistente_Reserva({
     () => (doctorId && fecha ? slotsDisponibles(doctorId, fecha) : []),
     [doctorId, fecha],
   );
+
+  // Reset dependientes cuando cambia un paso previo
+  useEffect(() => { setEspecialidad(""); setDoctorId(""); setFecha(""); setHora(""); }, [sede]);
+  useEffect(() => { setDoctorId(""); setFecha(""); setHora(""); }, [especialidad]);
+  useEffect(() => { setFecha(""); setHora(""); }, [doctorId]);
+  useEffect(() => { setHora(""); }, [fecha]);
+
 
   function confirmar() {
     if (!sede || !especialidad || !doctorSel || !fecha || !hora) return;
@@ -279,18 +312,31 @@ function Asistente_Reserva({
           onElegir={(v) => setSede(v as Sede)}
         />
       )}
-      {paso === 2 && (
-        <Opciones
-          items={especialidades.map((s) => ({ id: s, label: s }))}
-          seleccionado={especialidad}
-          onElegir={setEspecialidad}
-        />
-      )}
+      {paso === 2 &&
+        (especialidades.length === 0 ? (
+          <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+            <Info className="mt-0.5 size-5 shrink-0 text-primary" />
+            <p>
+              La sede <b>{sede}</b> no tiene especialidades con cupos disponibles
+              en este momento. Vuelve al paso anterior y elige otra sede.
+            </p>
+          </div>
+        ) : (
+          <Opciones
+            items={especialidades.map((s) => ({ id: s, label: s }))}
+            seleccionado={especialidad}
+            onElegir={setEspecialidad}
+          />
+        ))}
       {paso === 3 &&
         (doctores.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            No hay médicos de {especialidad} en {sede}. Vuelve y elige otra combinación.
-          </p>
+          <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+            <Info className="mt-0.5 size-5 shrink-0 text-primary" />
+            <p>
+              No hay médicos de {especialidad} con cupos disponibles en {sede}.
+              Vuelve y elige otra combinación.
+            </p>
+          </div>
         ) : (
           <Opciones
             items={doctores.map((d) => ({ id: d.id, label: d.nombre, sub: d.especialidad }))}
@@ -298,6 +344,7 @@ function Asistente_Reserva({
             onElegir={setDoctorId}
           />
         ))}
+
       {paso === 4 &&
         (fechas.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
