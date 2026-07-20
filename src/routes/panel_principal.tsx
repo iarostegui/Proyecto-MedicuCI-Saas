@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   CalendarPlus,
@@ -9,9 +9,11 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
+  Info,
 } from "lucide-react";
 import { Cascara_App } from "@/components/Cascara_App";
-import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
+import { Insignia_Urgente } from "@/components/Insignia_Estado";
+import { Detalle_Cita } from "@/components/Detalle_Cita";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -23,11 +25,12 @@ import {
   type Cita,
 } from "@/logica/citas";
 import {
-  listarEspecialidades,
-  medicosPorEspecialidadYSede,
+  especialidadesDisponiblesEnSede,
+  medicosDisponibles,
 } from "@/logica/medicos";
 import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
 import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
+
 
 export const Route = createFileRoute("/panel_principal")({
   head: () => ({
