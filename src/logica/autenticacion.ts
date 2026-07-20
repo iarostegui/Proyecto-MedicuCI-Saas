@@ -70,14 +70,23 @@ export function inicializarAlmacen(): void {
     s.removeItem(CLAVE_SESION_LEGACY);
   }
 
-  // Seed médicos institucionales
-  if (!s.getItem(CLAVE_MEDICOS)) {
-    s.setItem(CLAVE_MEDICOS, JSON.stringify(MEDICOS_INICIALES));
+  // Seed / actualiza médicos institucionales.
+  let medicos: MedicoRegistro[] = [];
+  try {
+    medicos = JSON.parse(s.getItem(CLAVE_MEDICOS) || "[]") as MedicoRegistro[];
+  } catch {
+    medicos = [];
+  }
+  const idsExistentes = new Set(medicos.map((m) => m.id));
+  const faltantes = MEDICOS_INICIALES.filter((m) => !idsExistentes.has(m.id));
+  if (medicos.length === 0 || faltantes.length > 0) {
+    s.setItem(CLAVE_MEDICOS, JSON.stringify([...medicos, ...faltantes]));
   }
 
   // Seed disponibilidad por médico
   inicializarDisponibilidad();
 }
+
 
 
 export function obtenerUsuarios(): UsuarioRegistrado[] {
