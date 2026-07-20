@@ -3,6 +3,8 @@ import {
   DOMINIO_INSTITUCIONAL,
   type MedicoRegistro,
 } from "@/datos/medicos_iniciales";
+import { inicializarDisponibilidad } from "@/logica/disponibilidad";
+
 
 export type RolUsuario = "Paciente" | "Medico";
 
