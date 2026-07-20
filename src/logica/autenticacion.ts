@@ -74,7 +74,11 @@ export function inicializarAlmacen(): void {
   if (!s.getItem(CLAVE_MEDICOS)) {
     s.setItem(CLAVE_MEDICOS, JSON.stringify(MEDICOS_INICIALES));
   }
+
+  // Seed disponibilidad por médico
+  inicializarDisponibilidad();
 }
+
 
 export function obtenerUsuarios(): UsuarioRegistrado[] {
   const s = almacenamientoSeguro();
