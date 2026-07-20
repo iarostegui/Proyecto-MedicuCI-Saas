@@ -312,18 +312,31 @@ function Asistente_Reserva({
           onElegir={(v) => setSede(v as Sede)}
         />
       )}
-      {paso === 2 && (
-        <Opciones
-          items={especialidades.map((s) => ({ id: s, label: s }))}
-          seleccionado={especialidad}
-          onElegir={setEspecialidad}
-        />
-      )}
+      {paso === 2 &&
+        (especialidades.length === 0 ? (
+          <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+            <Info className="mt-0.5 size-5 shrink-0 text-primary" />
+            <p>
+              La sede <b>{sede}</b> no tiene especialidades con cupos disponibles
+              en este momento. Vuelve al paso anterior y elige otra sede.
+            </p>
+          </div>
+        ) : (
+          <Opciones
+            items={especialidades.map((s) => ({ id: s, label: s }))}
+            seleccionado={especialidad}
+            onElegir={setEspecialidad}
+          />
+        ))}
       {paso === 3 &&
         (doctores.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            No hay médicos de {especialidad} en {sede}. Vuelve y elige otra combinación.
-          </p>
+          <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
+            <Info className="mt-0.5 size-5 shrink-0 text-primary" />
+            <p>
+              No hay médicos de {especialidad} con cupos disponibles en {sede}.
+              Vuelve y elige otra combinación.
+            </p>
+          </div>
         ) : (
           <Opciones
             items={doctores.map((d) => ({ id: d.id, label: d.nombre, sub: d.especialidad }))}
@@ -331,6 +344,7 @@ function Asistente_Reserva({
             onElegir={setDoctorId}
           />
         ))}
+
       {paso === 4 &&
         (fechas.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
