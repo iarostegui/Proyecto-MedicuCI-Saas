@@ -23,6 +23,14 @@ export const MOTIVOS_CANCELACION: MotivoCancelacion[] = [
   "Otro",
 ];
 
+export interface NotaClinica {
+  diagnostico: string;
+  tratamiento: string;
+  observaciones?: string;
+  registradaEn: string; // ISO
+  registradaPor: string; // correo del médico
+}
+
 export interface Cita {
   codigo: string;
   pacienteCorreo: string;
@@ -40,6 +48,7 @@ export interface Cita {
   motivoCancelacion?: string;
   motivoCancelacionDetalle?: string;
   fechaCreacion: string; // ISO
+  notaClinica?: NotaClinica;
 }
 
 const CLAVE_CITAS = "medicu:citas";
