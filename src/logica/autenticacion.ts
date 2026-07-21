@@ -6,7 +6,10 @@ import {
 import { inicializarDisponibilidad } from "@/logica/disponibilidad";
 
 
-export type RolUsuario = "Paciente" | "Medico";
+export type RolUsuario = "Paciente" | "Medico" | "Admin";
+
+export const CORREO_ADMIN = "admin@medicu.ci.com";
+const CONTRASENA_ADMIN = "Medicu2026";
 
 export interface UsuarioRegistrado {
   dni: string;
@@ -119,6 +122,28 @@ export function obtenerMedicos(): MedicoRegistro[] {
   }
 }
 
+function guardarMedicos(lista: MedicoRegistro[]) {
+  const s = almacenamientoSeguro();
+  if (!s) return;
+  s.setItem(CLAVE_MEDICOS, JSON.stringify(lista));
+}
+
+/** Alta o edición de un médico. Devuelve el registro final. */
+export function upsertMedico(medico: MedicoRegistro): MedicoRegistro {
+  const lista = obtenerMedicos();
+  const idx = lista.findIndex((m) => m.id === medico.id);
+  if (idx >= 0) lista[idx] = medico;
+  else lista.push(medico);
+  guardarMedicos(lista);
+  inicializarDisponibilidad();
+  return medico;
+}
+
+export function eliminarMedico(id: string): void {
+  const lista = obtenerMedicos().filter((m) => m.id !== id);
+  guardarMedicos(lista);
+}
+
 export function buscarUsuarioPorCorreo(correo: string): UsuarioRegistrado | undefined {
   return obtenerUsuarios().find((u) => u.correo.toLowerCase() === correo.toLowerCase());
 }
@@ -129,6 +154,14 @@ export function buscarMedicoPorCorreo(correo: string): MedicoRegistro | undefine
 
 export function esCorreoInstitucional(correo: string): boolean {
   return correo.trim().toLowerCase().endsWith(DOMINIO_INSTITUCIONAL);
+}
+
+export function esCorreoAdmin(correo: string): boolean {
+  return correo.trim().toLowerCase() === CORREO_ADMIN;
+}
+
+export function validarLoginAdmin(correo: string, contrasena: string): boolean {
+  return esCorreoAdmin(correo) && contrasena === CONTRASENA_ADMIN;
 }
 
 export function establecerSesion(sesion: SesionActiva): void {

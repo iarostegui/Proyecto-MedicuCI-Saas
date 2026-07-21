@@ -1,7 +1,17 @@
 import type { ReactNode } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { CalendarDays, History, HeartPulse, LogOut, Stethoscope, Settings2 } from "lucide-react";
+import {
+  CalendarDays,
+  History,
+  HeartPulse,
+  LogOut,
+  Stethoscope,
+  Settings2,
+  Shield,
+  BarChart3,
+} from "lucide-react";
 import { Boton_Urgente } from "@/components/Boton_Urgente";
+import { Campana_Notificaciones } from "@/components/Campana_Notificaciones";
 import { useSesion } from "@/hooks/useSesion";
 import { cn } from "@/lib/utils";
 
@@ -12,14 +22,25 @@ const navPaciente = [
 const navMedico = [
   { to: "/panel_medico", label: "Citas", icon: Stethoscope },
   { to: "/disponibilidad_medico", label: "Disponibilidad", icon: Settings2 },
+  { to: "/reportes", label: "Reportes", icon: BarChart3 },
+] as const;
+const navAdmin = [
+  { to: "/panel_admin", label: "Admin", icon: Shield },
+  { to: "/reportes", label: "Reportes", icon: BarChart3 },
 ] as const;
 
 export function Cascara_App({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { rol, cerrarSesion } = useSesion();
-  const navegacion = rol === "Medico" ? navMedico : navPaciente;
-  const inicioLink = rol === "Medico" ? "/panel_medico" : "/panel_principal";
+  const navegacion =
+    rol === "Medico" ? navMedico : rol === "Admin" ? navAdmin : navPaciente;
+  const inicioLink =
+    rol === "Medico"
+      ? "/panel_medico"
+      : rol === "Admin"
+        ? "/panel_admin"
+        : "/panel_principal";
 
   function handleCerrarSesion() {
     cerrarSesion();
@@ -58,13 +79,16 @@ export function Cascara_App({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <button
-            onClick={handleCerrarSesion}
-            aria-label="Cerrar sesión"
-            className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <LogOut className="size-[18px]" />
-          </button>
+          <div className="flex items-center gap-1">
+            <Campana_Notificaciones />
+            <button
+              onClick={handleCerrarSesion}
+              aria-label="Cerrar sesión"
+              className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <LogOut className="size-[18px]" />
+            </button>
+          </div>
         </div>
       </header>
 

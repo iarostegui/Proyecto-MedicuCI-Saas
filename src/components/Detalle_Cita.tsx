@@ -8,6 +8,8 @@ import {
   Download,
   X,
   CalendarClock,
+  ClipboardCheck,
+  NotebookPen,
 } from "lucide-react";
 import {
   Dialog,
@@ -20,12 +22,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
 import { descargarComprobantePDF } from "@/logica/comprobante";
-import { cancelarCita, reprogramarCita, type Cita } from "@/logica/citas";
+import {
+  cancelarCita,
+  registrarAtencion,
+  reprogramarCita,
+  type Cita,
+} from "@/logica/citas";
 import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
+import { obtenerSesion } from "@/logica/autenticacion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export type ModoDetalle = "panel" | "historial";
+export type ModoDetalle = "panel" | "historial" | "medico";
 
 interface Props {
   cita: Cita;
@@ -34,6 +42,7 @@ interface Props {
   onCambio?: () => void;
   /** "panel": paciente puede cancelar/reprogramar, sin badge de estado.
    *  "historial": sólo lectura + PDF, con badge de estado.
+   *  "medico": médico puede registrar atención (nota clínica).
    *  Compat: `soloLectura` sigue funcionando como "historial". */
   modo?: ModoDetalle;
   soloLectura?: boolean;
@@ -48,16 +57,25 @@ export function Detalle_Cita({
   soloLectura,
 }: Props) {
   const modoEfectivo: ModoDetalle = modo ?? (soloLectura ? "historial" : "panel");
-  const [pantalla, setPantalla] = useState<"detalle" | "cancelar" | "reprogramar">(
-    "detalle",
-  );
+  const [pantalla, setPantalla] = useState<
+    "detalle" | "cancelar" | "reprogramar" | "atender"
+  >("detalle");
   const [motivo, setMotivo] = useState("");
   const [fechaNueva, setFechaNueva] = useState("");
   const [horaNueva, setHoraNueva] = useState("");
 
+  // Nota clínica (modo médico)
+  const [diagnostico, setDiagnostico] = useState(cita.notaClinica?.diagnostico ?? "");
+  const [tratamiento, setTratamiento] = useState(cita.notaClinica?.tratamiento ?? "");
+  const [obsNota, setObsNota] = useState(cita.notaClinica?.observaciones ?? "");
+
   const puedeGestionar =
     modoEfectivo === "panel" &&
     (cita.estado === "Programada" || cita.estado === "Reprogramada");
+  const puedeAtender =
+    modoEfectivo === "medico" &&
+    (cita.estado === "Programada" || cita.estado === "Reprogramada");
+  const mostrarEstado = modoEfectivo === "historial" || modoEfectivo === "medico";
 
   const fechasReprog = useMemo(
     () => (pantalla === "reprogramar" ? fechasDisponibles(cita.doctorId, 30) : []),
@@ -102,13 +120,32 @@ export function Detalle_Cita({
     cerrarTodo();
   }
 
+  function confirmarAtencion() {
+    if (!diagnostico.trim() || !tratamiento.trim()) {
+      toast.error("Diagnóstico y tratamiento son obligatorios.");
+      return;
+    }
+    const sesion = obtenerSesion();
+    registrarAtencion(cita.codigo, {
+      diagnostico: diagnostico.trim(),
+      tratamiento: tratamiento.trim(),
+      observaciones: obsNota.trim() || undefined,
+      registradaPor: sesion?.correo ?? "medico",
+    });
+    toast.success("Atención registrada", {
+      description: "La cita quedó marcada como atendida.",
+    });
+    onCambio?.();
+    cerrarTodo();
+  }
+
   return (
     <Dialog open={abierto} onOpenChange={(o) => !o && cerrarTodo()}>
       <DialogContent className="sm:max-w-lg">
         {pantalla === "detalle" && (
           <>
             <DialogHeader>
-              {modoEfectivo === "historial" && (
+              {mostrarEstado && (
                 <div className="mb-1 flex items-center gap-2">
                   <Insignia_Estado estado={cita.estado} />
                   {cita.esUrgente && <Insignia_Urgente />}
@@ -147,6 +184,23 @@ export function Detalle_Cita({
                   <span className="whitespace-pre-line">{cita.observaciones}</span>
                 </Fila>
               )}
+              {cita.notaClinica && (
+                <div className="rounded-lg border border-primary/30 bg-primary-soft/40 px-3 py-2">
+                  <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                    <NotebookPen className="size-3.5" /> Nota clínica
+                  </p>
+                  <p className="text-sm"><b>Diagnóstico:</b> {cita.notaClinica.diagnostico}</p>
+                  <p className="text-sm"><b>Tratamiento:</b> {cita.notaClinica.tratamiento}</p>
+                  {cita.notaClinica.observaciones && (
+                    <p className="text-sm whitespace-pre-line">
+                      <b>Observaciones:</b> {cita.notaClinica.observaciones}
+                    </p>
+                  )}
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Registrada el {new Date(cita.notaClinica.registradaEn).toLocaleString("es-ES")}
+                  </p>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
@@ -181,6 +235,15 @@ export function Detalle_Cita({
                       Cancelar cita
                     </Button>
                   </>
+                )}
+                {puedeAtender && (
+                  <Button
+                    onClick={() => setPantalla("atender")}
+                    className="w-full sm:w-auto"
+                  >
+                    <ClipboardCheck className="size-4" />
+                    Registrar atención
+                  </Button>
                 )}
               </div>
             </DialogFooter>
@@ -300,6 +363,60 @@ export function Detalle_Cita({
               </Button>
               <Button onClick={confirmarReprogramar} disabled={!fechaNueva || !horaNueva}>
                 Confirmar reprogramación
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {pantalla === "atender" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-xl">Registrar atención</DialogTitle>
+              <DialogDescription>
+                La cita se marcará como <b>Atendida</b> y la nota quedará en la historia clínica del paciente.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">
+                  Diagnóstico *
+                </span>
+                <textarea
+                  value={diagnostico}
+                  onChange={(e) => setDiagnostico(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-input bg-background p-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">
+                  Tratamiento *
+                </span>
+                <textarea
+                  value={tratamiento}
+                  onChange={(e) => setTratamiento(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-input bg-background p-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">
+                  Observaciones (opcional)
+                </span>
+                <textarea
+                  value={obsNota}
+                  onChange={(e) => setObsNota(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-input bg-background p-2 text-sm"
+                />
+              </label>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="ghost" onClick={() => setPantalla("detalle")}>
+                Volver
+              </Button>
+              <Button onClick={confirmarAtencion}>
+                <ClipboardCheck className="size-4" /> Guardar y marcar atendida
               </Button>
             </DialogFooter>
           </>

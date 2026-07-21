@@ -23,6 +23,14 @@ export const MOTIVOS_CANCELACION: MotivoCancelacion[] = [
   "Otro",
 ];
 
+export interface NotaClinica {
+  diagnostico: string;
+  tratamiento: string;
+  observaciones?: string;
+  registradaEn: string; // ISO
+  registradaPor: string; // correo del médico
+}
+
 export interface Cita {
   codigo: string;
   pacienteCorreo: string;
@@ -40,6 +48,7 @@ export interface Cita {
   motivoCancelacion?: string;
   motivoCancelacionDetalle?: string;
   fechaCreacion: string; // ISO
+  notaClinica?: NotaClinica;
 }
 
 const CLAVE_CITAS = "medicu:citas";
@@ -68,6 +77,11 @@ function guardarCitas(citas: Cita[]) {
   const s = store();
   if (!s) return;
   s.setItem(CLAVE_CITAS, JSON.stringify(citas));
+}
+
+/** Reemplaza toda la lista (usado por restauración de respaldo). */
+export function reemplazarCitas(citas: Cita[]) {
+  guardarCitas(citas);
 }
 
 export function generarCodigoCita(): string {
@@ -124,6 +138,17 @@ export function cancelarCita(
     motivoCancelacion: motivo,
     motivoCancelacionDetalle: detalle,
     observaciones,
+  });
+}
+
+/** Marca la cita como Atendida y guarda la nota clínica. */
+export function registrarAtencion(
+  codigo: string,
+  nota: Omit<NotaClinica, "registradaEn">,
+): Cita | null {
+  return actualizarCita(codigo, {
+    estado: "Atendida",
+    notaClinica: { ...nota, registradaEn: new Date().toISOString() },
   });
 }
 
