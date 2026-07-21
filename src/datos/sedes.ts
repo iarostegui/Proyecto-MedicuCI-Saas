@@ -6,4 +6,6 @@ export const SEDES = [
   "La Molina",
 ] as const;
 
-export type Sede = (typeof SEDES)[number];
+// Tipo relajado para permitir sedes creadas por el administrador.
+export type Sede = string;
+
