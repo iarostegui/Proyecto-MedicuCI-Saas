@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ReportesRouteImport } from './routes/reportes'
 import { Route as Panel_principalRouteImport } from './routes/panel_principal'
 import { Route as Panel_medicoRouteImport } from './routes/panel_medico'
+import { Route as Panel_adminRouteImport } from './routes/panel_admin'
 import { Route as Inicio_sesionRouteImport } from './routes/inicio_sesion'
 import { Route as Historial_citasRouteImport } from './routes/historial_citas'
 import { Route as Disponibilidad_medicoRouteImport } from './routes/disponibilidad_medico'
@@ -22,6 +24,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportesRoute = ReportesRouteImport.update({
+  id: '/reportes',
+  path: '/reportes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Panel_principalRoute = Panel_principalRouteImport.update({
   id: '/panel_principal',
   path: '/panel_principal',
@@ -30,6 +37,11 @@ const Panel_principalRoute = Panel_principalRouteImport.update({
 const Panel_medicoRoute = Panel_medicoRouteImport.update({
   id: '/panel_medico',
   path: '/panel_medico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Panel_adminRoute = Panel_adminRouteImport.update({
+  id: '/panel_admin',
+  path: '/panel_admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Inicio_sesionRoute = Inicio_sesionRouteImport.update({
@@ -58,8 +70,10 @@ export interface FileRoutesByFullPath {
   '/disponibilidad_medico': typeof Disponibilidad_medicoRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
+  '/panel_admin': typeof Panel_adminRoute
   '/panel_medico': typeof Panel_medicoRoute
   '/panel_principal': typeof Panel_principalRoute
+  '/reportes': typeof ReportesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRoutesByTo {
@@ -67,8 +81,10 @@ export interface FileRoutesByTo {
   '/disponibilidad_medico': typeof Disponibilidad_medicoRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
+  '/panel_admin': typeof Panel_adminRoute
   '/panel_medico': typeof Panel_medicoRoute
   '/panel_principal': typeof Panel_principalRoute
+  '/reportes': typeof ReportesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRoutesById {
@@ -77,8 +93,10 @@ export interface FileRoutesById {
   '/disponibilidad_medico': typeof Disponibilidad_medicoRoute
   '/historial_citas': typeof Historial_citasRoute
   '/inicio_sesion': typeof Inicio_sesionRoute
+  '/panel_admin': typeof Panel_adminRoute
   '/panel_medico': typeof Panel_medicoRoute
   '/panel_principal': typeof Panel_principalRoute
+  '/reportes': typeof ReportesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
 }
 export interface FileRouteTypes {
@@ -88,8 +106,10 @@ export interface FileRouteTypes {
     | '/disponibilidad_medico'
     | '/historial_citas'
     | '/inicio_sesion'
+    | '/panel_admin'
     | '/panel_medico'
     | '/panel_principal'
+    | '/reportes'
     | '/sitemap.xml'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -97,8 +117,10 @@ export interface FileRouteTypes {
     | '/disponibilidad_medico'
     | '/historial_citas'
     | '/inicio_sesion'
+    | '/panel_admin'
     | '/panel_medico'
     | '/panel_principal'
+    | '/reportes'
     | '/sitemap.xml'
   id:
     | '__root__'
@@ -106,8 +128,10 @@ export interface FileRouteTypes {
     | '/disponibilidad_medico'
     | '/historial_citas'
     | '/inicio_sesion'
+    | '/panel_admin'
     | '/panel_medico'
     | '/panel_principal'
+    | '/reportes'
     | '/sitemap.xml'
   fileRoutesById: FileRoutesById
 }
@@ -116,8 +140,10 @@ export interface RootRouteChildren {
   Disponibilidad_medicoRoute: typeof Disponibilidad_medicoRoute
   Historial_citasRoute: typeof Historial_citasRoute
   Inicio_sesionRoute: typeof Inicio_sesionRoute
+  Panel_adminRoute: typeof Panel_adminRoute
   Panel_medicoRoute: typeof Panel_medicoRoute
   Panel_principalRoute: typeof Panel_principalRoute
+  ReportesRoute: typeof ReportesRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
@@ -128,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reportes': {
+      id: '/reportes'
+      path: '/reportes'
+      fullPath: '/reportes'
+      preLoaderRoute: typeof ReportesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/panel_principal': {
@@ -142,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/panel_medico'
       fullPath: '/panel_medico'
       preLoaderRoute: typeof Panel_medicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel_admin': {
+      id: '/panel_admin'
+      path: '/panel_admin'
+      fullPath: '/panel_admin'
+      preLoaderRoute: typeof Panel_adminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inicio_sesion': {
@@ -180,8 +220,10 @@ const rootRouteChildren: RootRouteChildren = {
   Disponibilidad_medicoRoute: Disponibilidad_medicoRoute,
   Historial_citasRoute: Historial_citasRoute,
   Inicio_sesionRoute: Inicio_sesionRoute,
+  Panel_adminRoute: Panel_adminRoute,
   Panel_medicoRoute: Panel_medicoRoute,
   Panel_principalRoute: Panel_principalRoute,
+  ReportesRoute: ReportesRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
