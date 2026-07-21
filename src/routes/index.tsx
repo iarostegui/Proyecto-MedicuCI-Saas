@@ -25,9 +25,12 @@ function Pagina_Redireccion() {
     }
     if (sesion.rol === "Medico") {
       navigate({ to: "/panel_medico", replace: true });
+    } else if (sesion.rol === "Admin") {
+      navigate({ to: "/panel_admin", replace: true });
     } else {
       navigate({ to: "/panel_principal", replace: true });
     }
+
   }, [navigate]);
 
   return (

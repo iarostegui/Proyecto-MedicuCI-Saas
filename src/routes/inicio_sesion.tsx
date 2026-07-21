@@ -32,8 +32,10 @@ import {
   validarCorreo,
   validarDni,
   validarFechaEmision,
+  validarLoginAdmin,
   validarNombre,
 } from "@/logica/autenticacion";
+
 
 export const Route = createFileRoute("/inicio_sesion")({
   head: () => ({
@@ -110,6 +112,13 @@ function Pagina_Inicio_Sesion() {
 
     const correo = correoLogin.trim();
 
+    // Administrador del sistema
+    if (validarLoginAdmin(correo, contrasenaLogin)) {
+      establecerSesion({ correo, nombre: "Administrador", rol: "Admin" });
+      navigate({ to: "/panel_admin" });
+      return;
+    }
+
     // Cuentas institucionales → sólo médicos existentes en la base
     if (esCorreoInstitucional(correo)) {
       const medico = buscarMedicoPorCorreo(correo);
@@ -133,6 +142,7 @@ function Pagina_Inicio_Sesion() {
     establecerSesion({ correo: usuario.correo, nombre: usuario.nombre, rol: "Paciente" });
     navigate({ to: "/panel_principal" });
   }
+
 
   function manejarRegistro(e: React.FormEvent) {
     e.preventDefault();

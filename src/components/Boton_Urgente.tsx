@@ -26,10 +26,16 @@ export function Boton_Urgente() {
   const [especialidad, setEspecialidad] = useState(especialidades[0] ?? "");
   const [sede, setSede] = useState<Sede>(SEDES[0]);
 
-  // Ocultar en rutas médicas
-  if (pathname.startsWith("/panel_medico") || pathname.startsWith("/disponibilidad_medico")) {
+  // Ocultar en rutas médicas y de administración
+  if (
+    pathname.startsWith("/panel_medico") ||
+    pathname.startsWith("/disponibilidad_medico") ||
+    pathname.startsWith("/panel_admin") ||
+    pathname.startsWith("/reportes")
+  ) {
     return null;
   }
+
 
   function confirmar() {
     const sesion = obtenerSesion();

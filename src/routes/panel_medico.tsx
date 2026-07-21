@@ -289,10 +289,12 @@ function Pagina_Panel_Medico() {
         <Detalle_Cita
           cita={detalle}
           abierto={!!detalle}
+          modo="medico"
           onCerrar={() => setDetalle(null)}
-          soloLectura
+          onCambio={() => recargar(doctorId)}
         />
       )}
+
 
       <Dialog open={modalCancelar} onOpenChange={setModalCancelar}>
         <DialogContent className="sm:max-w-md">
