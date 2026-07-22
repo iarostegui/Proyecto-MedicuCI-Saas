@@ -20,8 +20,7 @@ function csvEscape(v: unknown): string {
   return s;
 }
 
-export function exportarCitasCSV() {
-  const citas = obtenerCitas();
+export function citasACSV(citas: Cita[]): string {
   const headers = [
     "codigo",
     "estado",
@@ -56,8 +55,60 @@ export function exportarCitasCSV() {
       .map(csvEscape)
       .join(","),
   );
-  const csv = [headers.join(","), ...rows].join("\n");
-  descargarBlob(`medicu_citas_${Date.now()}.csv`, csv, "text/csv;charset=utf-8");
+  return [headers.join(","), ...rows].join("\n");
+}
+
+export function exportarCitasCSV(citas?: Cita[], nombre = "medicu_citas") {
+  const csv = citasACSV(citas ?? obtenerCitas());
+  descargarBlob(`${nombre}_${Date.now()}.csv`, csv, "text/csv;charset=utf-8");
+}
+
+/** Abre una ventana con formato imprimible del listado de citas. */
+export function imprimirCitas(citas: Cita[], titulo = "Listado de citas") {
+  const filas = citas
+    .map(
+      (c) => `<tr>
+        <td>${c.codigo}</td>
+        <td>${c.fecha} ${c.hora}</td>
+        <td>${escapeHtml(c.pacienteNombre)}</td>
+        <td>${escapeHtml(c.especialidad)}</td>
+        <td>${escapeHtml(c.sede)}</td>
+        <td>${c.estado}</td>
+        <td>${escapeHtml(c.observaciones ?? "")}</td>
+      </tr>`,
+    )
+    .join("");
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(titulo)}</title>
+    <style>
+      body{font-family:system-ui,sans-serif;padding:24px;color:#0f172a}
+      h1{margin:0 0 4px;font-size:20px}
+      p.sub{margin:0 0 16px;color:#64748b;font-size:12px}
+      table{width:100%;border-collapse:collapse;font-size:12px}
+      th,td{border:1px solid #cbd5e1;padding:6px 8px;text-align:left;vertical-align:top}
+      th{background:#f1f5f9}
+    </style></head><body>
+    <h1>${escapeHtml(titulo)}</h1>
+    <p class="sub">Generado el ${new Date().toLocaleString("es-ES")} — ${citas.length} cita(s)</p>
+    <table><thead><tr>
+      <th>Código</th><th>Fecha</th><th>Paciente</th><th>Especialidad</th><th>Sede</th><th>Estado</th><th>Observaciones</th>
+    </tr></thead><tbody>${filas}</tbody></table>
+    <script>window.onload=()=>{window.print()}</script>
+  </body></html>`;
+  const w = window.open("", "_blank", "width=900,height=700");
+  if (!w) return;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[c] as string);
 }
 
 export function exportarPacientesCSV() {

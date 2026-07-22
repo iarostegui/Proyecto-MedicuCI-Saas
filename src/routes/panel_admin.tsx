@@ -162,7 +162,7 @@ function Pagina_Panel_Admin() {
 
       {/* Exportaciones y respaldo */}
       <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-border/70 bg-card p-4">
-        <Button variant="outline" onClick={exportarCitasCSV}>
+        <Button variant="outline" onClick={() => exportarCitasCSV()}>
           <Download className="size-4" /> Exportar citas CSV
         </Button>
         <Button variant="outline" onClick={exportarPacientesCSV}>

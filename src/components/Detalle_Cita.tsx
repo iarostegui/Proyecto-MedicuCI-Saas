@@ -75,6 +75,9 @@ export function Detalle_Cita({
   const puedeAtender =
     modoEfectivo === "medico" &&
     (cita.estado === "Programada" || cita.estado === "Reprogramada");
+  const puedeCancelarMedico =
+    modoEfectivo === "medico" &&
+    (cita.estado === "Programada" || cita.estado === "Reprogramada");
   const mostrarEstado = modoEfectivo === "historial" || modoEfectivo === "medico";
 
   const fechasReprog = useMemo(
@@ -95,13 +98,20 @@ export function Detalle_Cita({
   }
 
   function confirmarCancelar() {
-    cancelarCita(cita.codigo, "Cancelada por el paciente", motivo.trim() || undefined);
+    const esMedico = modoEfectivo === "medico";
+    if (esMedico && !motivo.trim()) {
+      toast.error("El motivo de cancelación es obligatorio.");
+      return;
+    }
+    const motivoBase = esMedico ? "Cancelada por el médico" : "Cancelada por el paciente";
+    cancelarCita(cita.codigo, motivoBase, motivo.trim() || undefined);
     toast.success("Cita cancelada", {
       description: `Se liberó el horario ${cita.hora} del ${cita.fecha}.`,
     });
     onCambio?.();
     cerrarTodo();
   }
+
 
   function confirmarReprogramar() {
     if (!fechaNueva || !horaNueva) {
@@ -245,32 +255,49 @@ export function Detalle_Cita({
                     Registrar atención
                   </Button>
                 )}
+                {puedeCancelarMedico && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setPantalla("cancelar")}
+                    className="w-full sm:w-auto"
+                  >
+                    <X className="size-4" />
+                    Cancelar cita
+                  </Button>
+                )}
               </div>
             </DialogFooter>
           </>
         )}
+
 
         {pantalla === "cancelar" && (
           <>
             <DialogHeader>
               <DialogTitle className="text-xl">Cancelar cita</DialogTitle>
               <DialogDescription>
-                Puedes indicar un motivo (opcional). Se guardará en las observaciones
-                y el horario quedará liberado automáticamente.
+                {modoEfectivo === "medico"
+                  ? "El motivo de cancelación es obligatorio. Se guardará en las observaciones visibles para el paciente y el horario quedará liberado automáticamente."
+                  : "Puedes indicar un motivo (opcional). Se guardará en las observaciones y el horario quedará liberado automáticamente."}
               </DialogDescription>
             </DialogHeader>
             <div className="py-2">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Motivo (opcional)
+                Motivo {modoEfectivo === "medico" ? "*" : "(opcional)"}
               </label>
               <textarea
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 rows={3}
-                placeholder="Ej. Tengo un imprevisto laboral."
+                placeholder={
+                  modoEfectivo === "medico"
+                    ? "Ej. Emergencia médica del profesional."
+                    : "Ej. Tengo un imprevisto laboral."
+                }
                 className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
               />
             </div>
+
             <DialogFooter className="gap-2 sm:gap-2">
               <Button variant="ghost" onClick={() => setPantalla("detalle")}>
                 Volver
