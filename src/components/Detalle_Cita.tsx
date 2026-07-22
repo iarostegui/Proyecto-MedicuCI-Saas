@@ -255,10 +255,21 @@ export function Detalle_Cita({
                     Registrar atención
                   </Button>
                 )}
+                {puedeCancelarMedico && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setPantalla("cancelar")}
+                    className="w-full sm:w-auto"
+                  >
+                    <X className="size-4" />
+                    Cancelar cita
+                  </Button>
+                )}
               </div>
             </DialogFooter>
           </>
         )}
+
 
         {pantalla === "cancelar" && (
           <>
