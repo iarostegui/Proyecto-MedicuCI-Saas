@@ -276,22 +276,28 @@ export function Detalle_Cita({
             <DialogHeader>
               <DialogTitle className="text-xl">Cancelar cita</DialogTitle>
               <DialogDescription>
-                Puedes indicar un motivo (opcional). Se guardará en las observaciones
-                y el horario quedará liberado automáticamente.
+                {modoEfectivo === "medico"
+                  ? "El motivo de cancelación es obligatorio. Se guardará en las observaciones visibles para el paciente y el horario quedará liberado automáticamente."
+                  : "Puedes indicar un motivo (opcional). Se guardará en las observaciones y el horario quedará liberado automáticamente."}
               </DialogDescription>
             </DialogHeader>
             <div className="py-2">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Motivo (opcional)
+                Motivo {modoEfectivo === "medico" ? "*" : "(opcional)"}
               </label>
               <textarea
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 rows={3}
-                placeholder="Ej. Tengo un imprevisto laboral."
+                placeholder={
+                  modoEfectivo === "medico"
+                    ? "Ej. Emergencia médica del profesional."
+                    : "Ej. Tengo un imprevisto laboral."
+                }
                 className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
               />
             </div>
+
             <DialogFooter className="gap-2 sm:gap-2">
               <Button variant="ghost" onClick={() => setPantalla("detalle")}>
                 Volver
