@@ -75,6 +75,9 @@ export function Detalle_Cita({
   const puedeAtender =
     modoEfectivo === "medico" &&
     (cita.estado === "Programada" || cita.estado === "Reprogramada");
+  const puedeCancelarMedico =
+    modoEfectivo === "medico" &&
+    (cita.estado === "Programada" || cita.estado === "Reprogramada");
   const mostrarEstado = modoEfectivo === "historial" || modoEfectivo === "medico";
 
   const fechasReprog = useMemo(
@@ -95,13 +98,20 @@ export function Detalle_Cita({
   }
 
   function confirmarCancelar() {
-    cancelarCita(cita.codigo, "Cancelada por el paciente", motivo.trim() || undefined);
+    const esMedico = modoEfectivo === "medico";
+    if (esMedico && !motivo.trim()) {
+      toast.error("El motivo de cancelación es obligatorio.");
+      return;
+    }
+    const motivoBase = esMedico ? "Cancelada por el médico" : "Cancelada por el paciente";
+    cancelarCita(cita.codigo, motivoBase, motivo.trim() || undefined);
     toast.success("Cita cancelada", {
       description: `Se liberó el horario ${cita.hora} del ${cita.fecha}.`,
     });
     onCambio?.();
     cerrarTodo();
   }
+
 
   function confirmarReprogramar() {
     if (!fechaNueva || !horaNueva) {
