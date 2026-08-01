@@ -177,6 +177,8 @@ function Pagina_Inicio_Sesion() {
     }
     navigate({ to: alta.destino ?? "/panel_principal" });
     // ===== FIN OWASP A2 =====
+  }
+
 
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-2">
