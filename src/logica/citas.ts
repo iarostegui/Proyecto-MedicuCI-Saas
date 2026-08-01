@@ -1,14 +1,24 @@
 // Modelo de citas persistidas en LocalStorage bajo la clave `medicu:citas`.
 import type { Sede } from "@/datos/sedes";
 
-export type EstadoCita = "Programada" | "Reprogramada" | "Cancelada" | "Atendida";
+// ===== INICIO MEJORA FUNCIONAL =====
+// Mejora funcional 4 — Nuevo estado automático "No asistió" para las citas
+// que superaron su fecha/hora y seguían en estado "Programada"/"Reprogramada".
+export type EstadoCita =
+  | "Programada"
+  | "Reprogramada"
+  | "Cancelada"
+  | "Atendida"
+  | "No asistió";
 
 export const ESTADOS_CITA: EstadoCita[] = [
   "Programada",
   "Reprogramada",
   "Cancelada",
   "Atendida",
+  "No asistió",
 ];
+// ===== FIN MEJORA FUNCIONAL =====
 
 export type MotivoCancelacion =
   | "Emergencia médica"

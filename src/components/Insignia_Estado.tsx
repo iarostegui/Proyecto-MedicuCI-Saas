@@ -6,6 +6,10 @@ const estilos: Record<EstadoCita, string> = {
   Reprogramada: "bg-warning/15 text-warning-foreground ring-warning/30",
   Atendida: "bg-muted text-muted-foreground ring-border",
   Cancelada: "bg-destructive/10 text-destructive ring-destructive/20",
+  // ===== INICIO MEJORA FUNCIONAL =====
+  // Estilo del estado automático "No asistió".
+  "No asistió": "bg-urgent/10 text-urgent ring-urgent/25",
+  // ===== FIN MEJORA FUNCIONAL =====
 };
 
 export function Insignia_Estado({ estado }: { estado: EstadoCita }) {
@@ -13,7 +17,7 @@ export function Insignia_Estado({ estado }: { estado: EstadoCita }) {
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ring-1 ring-inset",
-        estilos[estado],
+        estilos[estado] ?? "bg-muted text-muted-foreground ring-border",
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
