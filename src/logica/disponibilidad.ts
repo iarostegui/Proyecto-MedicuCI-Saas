@@ -73,25 +73,48 @@ export function guardarDisponibilidad(d: Disponibilidad) {
   escribirTodo(data);
 }
 
+// ===== INICIO MEJORA FUNCIONAL =====
+// Mejora funcional 3 — Validación de fechas.
+// Antes la agenda empezaba en "mañana" (i = 1). Ahora se incluye HOY siempre que
+// queden horarios futuros, y NUNCA se ofrecen fechas anteriores a la actual.
 /** Devuelve los próximos N días habilitados por la disponibilidad del médico. */
 export function fechasDisponibles(doctorId: string, dias = 30): string[] {
   const disp = obtenerDisponibilidad(doctorId);
   const resultado: string[] = [];
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  for (let i = 1; i <= dias; i++) {
+  for (let i = 0; i <= dias; i++) {
     const d = new Date(hoy.getTime() + i * 86400000);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = fechaLocalISO(d);
     if (!disp.diasSemana.includes(d.getDay())) continue;
     if (disp.fechasBloqueadas.includes(iso)) continue;
+    // Hoy solo se ofrece si aún queda al menos un horario libre en el futuro.
+    if (i === 0 && slotsDisponibles(doctorId, iso).length === 0) continue;
     resultado.push(iso);
   }
   return resultado;
 }
 
+/** Fecha local en formato YYYY-MM-DD (evita el desfase de toISOString por UTC). */
+export function fechaLocalISO(d: Date = new Date()): string {
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+/** ¿La fecha (YYYY-MM-DD) es anterior al día de hoy? */
+export function esFechaPasada(fecha: string): boolean {
+  return fecha < fechaLocalISO();
+}
+// ===== FIN MEJORA FUNCIONAL =====
+
 /** Devuelve los slots libres (HH:mm) del médico en una fecha. */
 export function slotsDisponibles(doctorId: string, fecha: string): string[] {
   const disp = obtenerDisponibilidad(doctorId);
+  // ===== INICIO MEJORA FUNCIONAL =====
+  // No se generan horarios para fechas ya pasadas.
+  if (esFechaPasada(fecha)) return [];
+  // ===== FIN MEJORA FUNCIONAL =====
   const [hi, mi] = disp.horaInicio.split(":").map(Number);
   const [hf, mf] = disp.horaFin.split(":").map(Number);
   const inicio = hi * 60 + mi;
@@ -102,12 +125,25 @@ export function slotsDisponibles(doctorId: string, fecha: string): string[] {
     const mm = String(t % 60).padStart(2, "0");
     slots.push(`${hh}:${mm}`);
   }
+  // ===== INICIO MEJORA FUNCIONAL =====
+  // Si la fecha es hoy, se descartan los horarios que ya pasaron.
+  const hoyISO = fechaLocalISO();
+  const ahora = new Date();
+  const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+  const vigentes =
+    fecha === hoyISO
+      ? slots.filter((s) => {
+          const [h, m] = s.split(":").map(Number);
+          return h * 60 + m > minutosAhora;
+        })
+      : slots;
+  // ===== FIN MEJORA FUNCIONAL =====
   const ocupados = new Set(
     obtenerCitas()
       .filter((c) => c.doctorId === doctorId && c.fecha === fecha && c.estado !== "Cancelada")
       .map((c) => c.hora),
   );
-  return slots.filter((s) => !ocupados.has(s));
+  return vigentes.filter((s) => !ocupados.has(s));
 }
 
 /** ¿El médico tiene al menos un slot libre en los próximos N días? */

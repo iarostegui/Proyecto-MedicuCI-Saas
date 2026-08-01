@@ -25,16 +25,17 @@ import {
   buscarUsuarioPorCorreo,
   buscarMedicoPorCorreo,
   esCorreoInstitucional,
-  establecerSesion,
-  guardarUsuario,
   inicializarAlmacen,
   validarContrasena,
   validarCorreo,
   validarDni,
   validarFechaEmision,
-  validarLoginAdmin,
   validarNombre,
 } from "@/logica/autenticacion";
+import {
+  iniciarSesionSegura,
+  registrarPacienteSeguro,
+} from "@/servicios/servicio_autenticacion";
 
 
 export const Route = createFileRoute("/inicio_sesion")({
@@ -112,35 +113,16 @@ function Pagina_Inicio_Sesion() {
 
     const correo = correoLogin.trim();
 
-    // Administrador del sistema
-    if (validarLoginAdmin(correo, contrasenaLogin)) {
-      establecerSesion({ correo, nombre: "Administrador", rol: "Admin" });
-      navigate({ to: "/panel_admin" });
+    // ===== INICIO OWASP A2 =====
+    // La verificación de credenciales (BCrypt + emisión de JWT) vive en el
+    // servicio de autenticación; la vista sólo muestra el resultado.
+    const acceso = iniciarSesionSegura(correo, contrasenaLogin);
+    if (!acceso.ok) {
+      setErroresLogin({ form: acceso.error });
       return;
     }
-
-    // Cuentas institucionales → sólo médicos existentes en la base
-    if (esCorreoInstitucional(correo)) {
-      const medico = buscarMedicoPorCorreo(correo);
-      if (!medico || medico.contrasena !== contrasenaLogin) {
-        setErroresLogin({ form: "Credenciales inválidas." });
-        return;
-      }
-      establecerSesion({ correo: medico.correo, nombre: medico.nombre, rol: "Medico" });
-      navigate({ to: "/panel_medico" });
-      return;
-    }
-
-    // Pacientes
-    const usuario = buscarUsuarioPorCorreo(correo);
-    if (!usuario || usuario.contrasena !== contrasenaLogin) {
-      setErroresLogin({
-        form: "Correo o contraseña incorrectos. Si no tienes cuenta, regístrate.",
-      });
-      return;
-    }
-    establecerSesion({ correo: usuario.correo, nombre: usuario.nombre, rol: "Paciente" });
-    navigate({ to: "/panel_principal" });
+    navigate({ to: acceso.destino ?? "/panel_principal" });
+    // ===== FIN OWASP A2 =====
   }
 
 
@@ -179,18 +161,24 @@ function Pagina_Inicio_Sesion() {
       return;
     }
 
-    guardarUsuario({
+    // ===== INICIO OWASP A2 =====
+    // El registro delega en el servicio: hashea con BCrypt y emite el JWT.
+    const alta = registrarPacienteSeguro({
       dni,
       fechaEmision,
       nombre: nombre.trim(),
       correo,
       contrasena: contrasenaReg,
       especialidades: preferencias,
-      rol: "Paciente",
     });
-    establecerSesion({ correo, nombre: nombre.trim(), rol: "Paciente" });
-    navigate({ to: "/panel_principal" });
+    if (!alta.ok) {
+      setErroresRegistro({ form: alta.error ?? "No se pudo completar el registro." });
+      return;
+    }
+    navigate({ to: alta.destino ?? "/panel_principal" });
+    // ===== FIN OWASP A2 =====
   }
+
 
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-2">

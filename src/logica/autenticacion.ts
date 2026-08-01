@@ -25,6 +25,8 @@ export interface SesionActiva {
   correo: string;
   nombre: string;
   rol: RolUsuario;
+  /** Id del médico cuando el rol es "Medico" (control de acceso por recurso). */
+  medicoId?: string;
 }
 
 const CLAVE_USUARIOS = "medicu:usuarios";

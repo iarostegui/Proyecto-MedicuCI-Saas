@@ -1,14 +1,24 @@
 // Modelo de citas persistidas en LocalStorage bajo la clave `medicu:citas`.
 import type { Sede } from "@/datos/sedes";
 
-export type EstadoCita = "Programada" | "Reprogramada" | "Cancelada" | "Atendida";
+// ===== INICIO MEJORA FUNCIONAL =====
+// Mejora funcional 4 — Nuevo estado automático "No asistió" para las citas
+// que superaron su fecha/hora y seguían en estado "Programada"/"Reprogramada".
+export type EstadoCita =
+  | "Programada"
+  | "Reprogramada"
+  | "Cancelada"
+  | "Atendida"
+  | "No asistió";
 
 export const ESTADOS_CITA: EstadoCita[] = [
   "Programada",
   "Reprogramada",
   "Cancelada",
   "Atendida",
+  "No asistió",
 ];
+// ===== FIN MEJORA FUNCIONAL =====
 
 export type MotivoCancelacion =
   | "Emergencia médica"
@@ -226,3 +236,31 @@ export function fechaCorta(iso: string): { dia: string; mes: string } {
     mes: d.toLocaleDateString("es-ES", { month: "short" }).replace(".", ""),
   };
 }
+
+// ===== INICIO MEJORA FUNCIONAL =====
+// Mejora funcional 4 — Proceso automático de cambio de estado.
+// Recorre las citas y marca como "No asistió" toda cita que superó su
+// fecha/hora programada y seguía en estado "Programada" o "Reprogramada".
+// Se ejecuta al abrir cualquier panel, por lo que el cambio es visible tanto
+// para el paciente como para el médico.
+/** Devuelve la cantidad de citas actualizadas. */
+export function conciliarEstadosVencidos(): number {
+  const todas = obtenerCitas();
+  const ahora = Date.now();
+  let cambios = 0;
+  const actualizadas = todas.map((c) => {
+    if (c.estado !== "Programada" && c.estado !== "Reprogramada") return c;
+    const programada = new Date(`${c.fecha}T${c.hora || "00:00"}:00`).getTime();
+    if (Number.isNaN(programada) || programada >= ahora) return c;
+    cambios++;
+    const nota = "Estado actualizado automáticamente: el paciente no asistió.";
+    return {
+      ...c,
+      estado: "No asistió" as EstadoCita,
+      observaciones: c.observaciones ? `${c.observaciones}\n${nota}` : nota,
+    };
+  });
+  if (cambios > 0) guardarCitas(actualizadas);
+  return cambios;
+}
+// ===== FIN MEJORA FUNCIONAL =====

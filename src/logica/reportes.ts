@@ -70,7 +70,16 @@ export function generarReporte(filtro?: {
 
 export function contarPorEstado(): Record<EstadoCita, number> {
   const r = generarReporte();
-  const out = { Programada: 0, Reprogramada: 0, Cancelada: 0, Atendida: 0 } as Record<EstadoCita, number>;
+  // ===== INICIO MEJORA FUNCIONAL =====
+  // Se incluye el nuevo estado automático "No asistió" en el conteo.
+  const out = {
+    Programada: 0,
+    Reprogramada: 0,
+    Cancelada: 0,
+    Atendida: 0,
+    "No asistió": 0,
+  } as Record<EstadoCita, number>;
+  // ===== FIN MEJORA FUNCIONAL =====
   r.porEstado.forEach((c) => (out[c.clave as EstadoCita] = c.valor));
   return out;
 }
