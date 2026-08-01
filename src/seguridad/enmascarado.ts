@@ -31,7 +31,7 @@ export function enmascararTelefono(telefono?: string | null): string {
   return "*".repeat(limpio.length - 4) + limpio.slice(-4);
 }
 
-/** 2019-04-23 -> **/**/2019 (solo se revela el año) */
+/** 2019-04-23 se muestra ocultando día y mes, revelando solo el año. */
 export function enmascararFechaEmision(fecha?: string | null): string {
   if (!fecha) return "—";
   const anio = fecha.slice(0, 4);
