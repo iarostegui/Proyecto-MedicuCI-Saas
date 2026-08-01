@@ -25,16 +25,17 @@ import {
   buscarUsuarioPorCorreo,
   buscarMedicoPorCorreo,
   esCorreoInstitucional,
-  establecerSesion,
-  guardarUsuario,
   inicializarAlmacen,
   validarContrasena,
   validarCorreo,
   validarDni,
   validarFechaEmision,
-  validarLoginAdmin,
   validarNombre,
 } from "@/logica/autenticacion";
+import {
+  iniciarSesionSegura,
+  registrarPacienteSeguro,
+} from "@/servicios/servicio_autenticacion";
 
 
 export const Route = createFileRoute("/inicio_sesion")({
