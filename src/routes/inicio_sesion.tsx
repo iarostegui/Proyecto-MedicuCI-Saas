@@ -161,18 +161,22 @@ function Pagina_Inicio_Sesion() {
       return;
     }
 
-    guardarUsuario({
+    // ===== INICIO OWASP A2 =====
+    // El registro delega en el servicio: hashea con BCrypt y emite el JWT.
+    const alta = registrarPacienteSeguro({
       dni,
       fechaEmision,
       nombre: nombre.trim(),
       correo,
       contrasena: contrasenaReg,
       especialidades: preferencias,
-      rol: "Paciente",
     });
-    establecerSesion({ correo, nombre: nombre.trim(), rol: "Paciente" });
-    navigate({ to: "/panel_principal" });
-  }
+    if (!alta.ok) {
+      setErroresRegistro({ form: alta.error ?? "No se pudo completar el registro." });
+      return;
+    }
+    navigate({ to: alta.destino ?? "/panel_principal" });
+    // ===== FIN OWASP A2 =====
 
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-2">
