@@ -80,7 +80,7 @@ function rotr(x: number, n: number): number {
 
 function hmacSha256(clave: string, mensaje: string): Uint8Array {
   const enc = new TextEncoder();
-  let claveBytes = enc.encode(clave);
+  let claveBytes: Uint8Array<ArrayBufferLike> = enc.encode(clave);
   if (claveBytes.length > 64) claveBytes = sha256Bytes(claveBytes);
   const bloque = new Uint8Array(64);
   bloque.set(claveBytes);
