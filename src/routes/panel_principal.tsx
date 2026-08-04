@@ -203,14 +203,14 @@ function Pagina_Panel_Principal() {
 
 // -------------------- Asistente de reserva --------------------
 
-type Paso = 1 | 2 | 3 | 4 | 5;
+type Paso = 1 | 2 | 3 | 4;
 const ETIQUETAS_PASOS: Record<Paso, string> = {
   1: "Sede",
   2: "Especialidad",
   3: "Doctor",
-  4: "Fecha",
-  5: "Hora",
+  4: "Fecha y hora",
 };
+
 
 function Asistente_Reserva({
   sesion,
