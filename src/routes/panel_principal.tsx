@@ -268,15 +268,14 @@ function Asistente_Reserva({
     (paso === 1 && !!sede) ||
     (paso === 2 && !!especialidad) ||
     (paso === 3 && !!doctorId) ||
-    (paso === 4 && !!fecha) ||
-    paso === 5;
+    paso === 4;
 
   return (
     <div className="animate-rise mb-8 rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-card)]">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 font-bold">
           <CalendarPlus className="size-5 text-primary" />
-          Nueva cita · Paso {paso} de 5 — {ETIQUETAS_PASOS[paso]}
+          Nueva cita · Paso {paso} de 4 — {ETIQUETAS_PASOS[paso]}
         </h2>
         <button
           type="button"
@@ -287,9 +286,9 @@ function Asistente_Reserva({
         </button>
       </div>
 
-      {/* Progreso */}
       <div className="mb-5 flex gap-1.5">
-        {[1, 2, 3, 4, 5].map((n) => (
+        {[1, 2, 3, 4].map((n) => (
+
           <div
             key={n}
             className={cn(
