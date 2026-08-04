@@ -213,60 +213,61 @@ export function Detalle_Cita({
               )}
             </div>
 
-            <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <DialogFooter
+              id="pie_detalle_cita"
+              className="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-2"
+            >
               <Button
                 variant="outline"
                 onClick={() => descargarComprobantePDF(cita)}
-                className="w-full sm:w-auto"
+                className="w-full min-w-0"
               >
                 <Download className="size-4" />
-                Descargar comprobante
+                Descargar
               </Button>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button variant="ghost" onClick={cerrarTodo} className="w-full sm:w-auto">
-                  Cerrar
-                </Button>
-                {puedeGestionar && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setPantalla("reprogramar")}
-                      className="w-full sm:w-auto"
-                    >
-                      <CalendarClock className="size-4" />
-                      Reprogramar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setPantalla("cancelar")}
-                      className="w-full sm:w-auto"
-                    >
-                      <X className="size-4" />
-                      Cancelar cita
-                    </Button>
-                  </>
-                )}
-                {puedeAtender && (
+              <Button variant="ghost" onClick={cerrarTodo} className="w-full min-w-0">
+                Cerrar
+              </Button>
+              {puedeGestionar && (
+                <>
                   <Button
-                    onClick={() => setPantalla("atender")}
-                    className="w-full sm:w-auto"
+                    variant="secondary"
+                    onClick={() => setPantalla("reprogramar")}
+                    className="w-full min-w-0"
                   >
-                    <ClipboardCheck className="size-4" />
-                    Registrar atención
+                    <CalendarClock className="size-4" />
+                    Reprogramar
                   </Button>
-                )}
-                {puedeCancelarMedico && (
                   <Button
+                    id="boton_cancelar"
                     variant="destructive"
                     onClick={() => setPantalla("cancelar")}
-                    className="w-full sm:w-auto"
+                    className="w-full min-w-0"
                   >
                     <X className="size-4" />
                     Cancelar cita
                   </Button>
-                )}
-              </div>
+                </>
+              )}
+              {puedeAtender && (
+                <Button onClick={() => setPantalla("atender")} className="w-full min-w-0">
+                  <ClipboardCheck className="size-4" />
+                  Registrar atención
+                </Button>
+              )}
+              {puedeCancelarMedico && (
+                <Button
+                  id="boton_cancelar"
+                  variant="destructive"
+                  onClick={() => setPantalla("cancelar")}
+                  className="w-full min-w-0"
+                >
+                  <X className="size-4" />
+                  Cancelar cita
+                </Button>
+              )}
             </DialogFooter>
+
           </>
         )}
 
