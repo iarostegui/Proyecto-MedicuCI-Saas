@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   CalendarDays,
   Clock,
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
+import { Selector_Fecha_Hora } from "@/components/Selector_Fecha_Hora";
+
 import { descargarComprobantePDF } from "@/logica/comprobante";
 import {
   cancelarCita,
@@ -28,10 +30,8 @@ import {
   reprogramarCita,
   type Cita,
 } from "@/logica/citas";
-import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
 import { obtenerSesion } from "@/logica/autenticacion";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 export type ModoDetalle = "panel" | "historial" | "medico";
 
@@ -80,14 +80,6 @@ export function Detalle_Cita({
     (cita.estado === "Programada" || cita.estado === "Reprogramada");
   const mostrarEstado = modoEfectivo === "historial" || modoEfectivo === "medico";
 
-  const fechasReprog = useMemo(
-    () => (pantalla === "reprogramar" ? fechasDisponibles(cita.doctorId, 30) : []),
-    [pantalla, cita.doctorId],
-  );
-  const horasReprog = useMemo(
-    () => (fechaNueva ? slotsDisponibles(cita.doctorId, fechaNueva) : []),
-    [fechaNueva, cita.doctorId],
-  );
 
   function cerrarTodo() {
     setPantalla("detalle");
@@ -213,60 +205,61 @@ export function Detalle_Cita({
               )}
             </div>
 
-            <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <DialogFooter
+              id="pie_detalle_cita"
+              className="mt-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-2"
+            >
               <Button
                 variant="outline"
                 onClick={() => descargarComprobantePDF(cita)}
-                className="w-full sm:w-auto"
+                className="w-full min-w-0"
               >
                 <Download className="size-4" />
-                Descargar comprobante
+                Descargar
               </Button>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button variant="ghost" onClick={cerrarTodo} className="w-full sm:w-auto">
-                  Cerrar
-                </Button>
-                {puedeGestionar && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setPantalla("reprogramar")}
-                      className="w-full sm:w-auto"
-                    >
-                      <CalendarClock className="size-4" />
-                      Reprogramar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => setPantalla("cancelar")}
-                      className="w-full sm:w-auto"
-                    >
-                      <X className="size-4" />
-                      Cancelar cita
-                    </Button>
-                  </>
-                )}
-                {puedeAtender && (
+              <Button variant="ghost" onClick={cerrarTodo} className="w-full min-w-0">
+                Cerrar
+              </Button>
+              {puedeGestionar && (
+                <>
                   <Button
-                    onClick={() => setPantalla("atender")}
-                    className="w-full sm:w-auto"
+                    variant="secondary"
+                    onClick={() => setPantalla("reprogramar")}
+                    className="w-full min-w-0"
                   >
-                    <ClipboardCheck className="size-4" />
-                    Registrar atención
+                    <CalendarClock className="size-4" />
+                    Reprogramar
                   </Button>
-                )}
-                {puedeCancelarMedico && (
                   <Button
+                    id="boton_cancelar"
                     variant="destructive"
                     onClick={() => setPantalla("cancelar")}
-                    className="w-full sm:w-auto"
+                    className="w-full min-w-0"
                   >
                     <X className="size-4" />
                     Cancelar cita
                   </Button>
-                )}
-              </div>
+                </>
+              )}
+              {puedeAtender && (
+                <Button onClick={() => setPantalla("atender")} className="w-full min-w-0">
+                  <ClipboardCheck className="size-4" />
+                  Registrar atención
+                </Button>
+              )}
+              {puedeCancelarMedico && (
+                <Button
+                  id="boton_cancelar"
+                  variant="destructive"
+                  onClick={() => setPantalla("cancelar")}
+                  className="w-full min-w-0"
+                >
+                  <X className="size-4" />
+                  Cancelar cita
+                </Button>
+              )}
             </DialogFooter>
+
           </>
         )}
 
@@ -318,71 +311,16 @@ export function Detalle_Cita({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Nueva fecha
-                </label>
-                {fechasReprog.length === 0 ? (
-                  <p className="rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
-                    Este médico no tiene fechas disponibles próximamente.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {fechasReprog.slice(0, 12).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => {
-                          setFechaNueva(f);
-                          setHoraNueva("");
-                        }}
-                        className={cn(
-                          "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
-                          fechaNueva === f
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-card hover:bg-secondary",
-                        )}
-                      >
-                        {new Date(f + "T00:00:00").toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "short",
-                        })}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {fechaNueva && (
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nueva hora
-                  </label>
-                  {horasReprog.length === 0 ? (
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
-                      No quedan horarios libres en esa fecha.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                      {horasReprog.map((h) => (
-                        <button
-                          key={h}
-                          onClick={() => setHoraNueva(h)}
-                          className={cn(
-                            "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
-                            horaNueva === h
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-card hover:bg-secondary",
-                          )}
-                        >
-                          {h}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+            <div className="py-2">
+              <Selector_Fecha_Hora
+                doctorId={cita.doctorId}
+                fecha={fechaNueva}
+                hora={horaNueva}
+                onFecha={setFechaNueva}
+                onHora={setHoraNueva}
+              />
             </div>
+
 
             <DialogFooter className="gap-2 sm:gap-2">
               <Button variant="ghost" onClick={() => setPantalla("detalle")}>

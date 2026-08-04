@@ -14,6 +14,8 @@ import {
 import { Cascara_App } from "@/components/Cascara_App";
 import { Insignia_Urgente } from "@/components/Insignia_Estado";
 import { Detalle_Cita } from "@/components/Detalle_Cita";
+import { Selector_Fecha_Hora } from "@/components/Selector_Fecha_Hora";
+
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -28,8 +30,8 @@ import {
   especialidadesDisponiblesEnSede,
   medicosDisponibles,
 } from "@/logica/medicos";
-import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
 import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
+
 
 
 export const Route = createFileRoute("/panel_principal")({
@@ -201,14 +203,14 @@ function Pagina_Panel_Principal() {
 
 // -------------------- Asistente de reserva --------------------
 
-type Paso = 1 | 2 | 3 | 4 | 5;
+type Paso = 1 | 2 | 3 | 4;
 const ETIQUETAS_PASOS: Record<Paso, string> = {
   1: "Sede",
   2: "Especialidad",
   3: "Doctor",
-  4: "Fecha",
-  5: "Hora",
+  4: "Fecha y hora",
 };
+
 
 function Asistente_Reserva({
   sesion,
@@ -238,14 +240,7 @@ function Asistente_Reserva({
     [sede, especialidad],
   );
   const doctorSel = doctores.find((d) => d.id === doctorId);
-  const fechas = useMemo(
-    () => (doctorId ? fechasDisponibles(doctorId, 21) : []),
-    [doctorId],
-  );
-  const slots = useMemo(
-    () => (doctorId && fecha ? slotsDisponibles(doctorId, fecha) : []),
-    [doctorId, fecha],
-  );
+
 
   // Reset dependientes cuando cambia un paso previo
   useEffect(() => { setEspecialidad(""); setDoctorId(""); setFecha(""); setHora(""); }, [sede]);
@@ -273,15 +268,14 @@ function Asistente_Reserva({
     (paso === 1 && !!sede) ||
     (paso === 2 && !!especialidad) ||
     (paso === 3 && !!doctorId) ||
-    (paso === 4 && !!fecha) ||
-    paso === 5;
+    paso === 4;
 
   return (
     <div className="animate-rise mb-8 rounded-2xl border border-border/70 bg-card p-5 shadow-[var(--shadow-card)]">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 font-bold">
           <CalendarPlus className="size-5 text-primary" />
-          Nueva cita · Paso {paso} de 5 — {ETIQUETAS_PASOS[paso]}
+          Nueva cita · Paso {paso} de 4 — {ETIQUETAS_PASOS[paso]}
         </h2>
         <button
           type="button"
@@ -292,9 +286,9 @@ function Asistente_Reserva({
         </button>
       </div>
 
-      {/* Progreso */}
       <div className="mb-5 flex gap-1.5">
-        {[1, 2, 3, 4, 5].map((n) => (
+        {[1, 2, 3, 4].map((n) => (
+
           <div
             key={n}
             className={cn(
@@ -345,59 +339,19 @@ function Asistente_Reserva({
           />
         ))}
 
-      {paso === 4 &&
-        (fechas.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            El médico no tiene fechas habilitadas en los próximos 21 días.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {fechas.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFecha(f)}
-                className={cn(
-                  "rounded-xl border p-3 text-left text-sm transition-colors",
-                  f === fecha
-                    ? "border-primary bg-primary-soft text-primary"
-                    : "border-border hover:bg-secondary",
-                )}
-              >
-                <div className="font-semibold">{formatearFechaLarga(f)}</div>
-                <div className="text-xs text-muted-foreground">{f}</div>
-              </button>
-            ))}
-          </div>
-        ))}
-      {paso === 5 && (
+      {paso === 4 && (
         <>
-          {slots.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              No quedan horarios libres ese día. Elige otra fecha.
-            </p>
-          ) : (
-            <div className="mb-5 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {slots.map((h) => (
-                <button
-                  key={h}
-                  type="button"
-                  onClick={() => setHora(h)}
-                  className={cn(
-                    "rounded-lg border py-2 text-sm font-medium transition-colors",
-                    h === hora
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:bg-secondary",
-                  )}
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-          )}
+          <Selector_Fecha_Hora
+            doctorId={doctorId}
+            fecha={fecha}
+            hora={hora}
+            onFecha={setFecha}
+            onHora={setHora}
+            dias={21}
+          />
 
           {hora && (
-            <div className="rounded-xl bg-secondary/60 p-4 text-sm">
+            <div className="mt-4 rounded-xl bg-secondary/60 p-4 text-sm">
               <p className="mb-2 flex items-center gap-2 font-semibold text-foreground">
                 <CheckCircle2 className="size-4 text-primary" />
                 Resumen de la cita
@@ -414,6 +368,7 @@ function Asistente_Reserva({
         </>
       )}
 
+
       <div className="mt-5 flex items-center justify-between gap-2">
         <Button
           variant="ghost"
@@ -422,7 +377,7 @@ function Asistente_Reserva({
         >
           <ChevronLeft className="size-4" /> Atrás
         </Button>
-        {paso < 5 ? (
+        {paso < 4 ? (
           <Button
             onClick={() => setPaso((p) => ((p + 1) as Paso))}
             disabled={!puedeAvanzar}
