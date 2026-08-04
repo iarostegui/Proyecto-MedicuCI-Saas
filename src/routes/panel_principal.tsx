@@ -345,59 +345,19 @@ function Asistente_Reserva({
           />
         ))}
 
-      {paso === 4 &&
-        (fechas.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            El médico no tiene fechas habilitadas en los próximos 21 días.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {fechas.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFecha(f)}
-                className={cn(
-                  "rounded-xl border p-3 text-left text-sm transition-colors",
-                  f === fecha
-                    ? "border-primary bg-primary-soft text-primary"
-                    : "border-border hover:bg-secondary",
-                )}
-              >
-                <div className="font-semibold">{formatearFechaLarga(f)}</div>
-                <div className="text-xs text-muted-foreground">{f}</div>
-              </button>
-            ))}
-          </div>
-        ))}
-      {paso === 5 && (
+      {paso === 4 && (
         <>
-          {slots.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              No quedan horarios libres ese día. Elige otra fecha.
-            </p>
-          ) : (
-            <div className="mb-5 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {slots.map((h) => (
-                <button
-                  key={h}
-                  type="button"
-                  onClick={() => setHora(h)}
-                  className={cn(
-                    "rounded-lg border py-2 text-sm font-medium transition-colors",
-                    h === hora
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border hover:bg-secondary",
-                  )}
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-          )}
+          <Selector_Fecha_Hora
+            doctorId={doctorId}
+            fecha={fecha}
+            hora={hora}
+            onFecha={setFecha}
+            onHora={setHora}
+            dias={21}
+          />
 
           {hora && (
-            <div className="rounded-xl bg-secondary/60 p-4 text-sm">
+            <div className="mt-4 rounded-xl bg-secondary/60 p-4 text-sm">
               <p className="mb-2 flex items-center gap-2 font-semibold text-foreground">
                 <CheckCircle2 className="size-4 text-primary" />
                 Resumen de la cita
@@ -413,6 +373,7 @@ function Asistente_Reserva({
           )}
         </>
       )}
+
 
       <div className="mt-5 flex items-center justify-between gap-2">
         <Button
