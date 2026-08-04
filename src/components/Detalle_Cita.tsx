@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   CalendarDays,
   Clock,
@@ -30,10 +30,8 @@ import {
   reprogramarCita,
   type Cita,
 } from "@/logica/citas";
-import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
 import { obtenerSesion } from "@/logica/autenticacion";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 export type ModoDetalle = "panel" | "historial" | "medico";
 
@@ -82,14 +80,6 @@ export function Detalle_Cita({
     (cita.estado === "Programada" || cita.estado === "Reprogramada");
   const mostrarEstado = modoEfectivo === "historial" || modoEfectivo === "medico";
 
-  const fechasReprog = useMemo(
-    () => (pantalla === "reprogramar" ? fechasDisponibles(cita.doctorId, 30) : []),
-    [pantalla, cita.doctorId],
-  );
-  const horasReprog = useMemo(
-    () => (fechaNueva ? slotsDisponibles(cita.doctorId, fechaNueva) : []),
-    [fechaNueva, cita.doctorId],
-  );
 
   function cerrarTodo() {
     setPantalla("detalle");
