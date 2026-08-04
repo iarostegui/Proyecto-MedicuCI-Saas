@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
+import { Selector_Fecha_Hora } from "@/components/Selector_Fecha_Hora";
+
 import { descargarComprobantePDF } from "@/logica/comprobante";
 import {
   cancelarCita,
