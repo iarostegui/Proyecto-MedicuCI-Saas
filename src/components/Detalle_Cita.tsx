@@ -319,71 +319,16 @@ export function Detalle_Cita({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-2">
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Nueva fecha
-                </label>
-                {fechasReprog.length === 0 ? (
-                  <p className="rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
-                    Este médico no tiene fechas disponibles próximamente.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {fechasReprog.slice(0, 12).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => {
-                          setFechaNueva(f);
-                          setHoraNueva("");
-                        }}
-                        className={cn(
-                          "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
-                          fechaNueva === f
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-card hover:bg-secondary",
-                        )}
-                      >
-                        {new Date(f + "T00:00:00").toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "short",
-                        })}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {fechaNueva && (
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Nueva hora
-                  </label>
-                  {horasReprog.length === 0 ? (
-                    <p className="rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">
-                      No quedan horarios libres en esa fecha.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                      {horasReprog.map((h) => (
-                        <button
-                          key={h}
-                          onClick={() => setHoraNueva(h)}
-                          className={cn(
-                            "rounded-lg border px-2 py-2 text-xs font-medium transition-colors",
-                            horaNueva === h
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-card hover:bg-secondary",
-                          )}
-                        >
-                          {h}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+            <div className="py-2">
+              <Selector_Fecha_Hora
+                doctorId={cita.doctorId}
+                fecha={fechaNueva}
+                hora={horaNueva}
+                onFecha={setFechaNueva}
+                onHora={setHoraNueva}
+              />
             </div>
+
 
             <DialogFooter className="gap-2 sm:gap-2">
               <Button variant="ghost" onClick={() => setPantalla("detalle")}>
