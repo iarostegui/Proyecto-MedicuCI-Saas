@@ -31,7 +31,7 @@ import {
   medicosDisponibles,
 } from "@/logica/medicos";
 import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
-import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
+
 
 
 export const Route = createFileRoute("/panel_principal")({
