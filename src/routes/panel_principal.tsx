@@ -30,7 +30,7 @@ import {
   especialidadesDisponiblesEnSede,
   medicosDisponibles,
 } from "@/logica/medicos";
-import { fechasDisponibles, slotsDisponibles } from "@/logica/disponibilidad";
+import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
 import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
 
 
