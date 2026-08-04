@@ -377,7 +377,7 @@ function Asistente_Reserva({
         >
           <ChevronLeft className="size-4" /> Atrás
         </Button>
-        {paso < 5 ? (
+        {paso < 4 ? (
           <Button
             onClick={() => setPaso((p) => ((p + 1) as Paso))}
             disabled={!puedeAvanzar}
