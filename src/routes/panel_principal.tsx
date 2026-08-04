@@ -240,14 +240,7 @@ function Asistente_Reserva({
     [sede, especialidad],
   );
   const doctorSel = doctores.find((d) => d.id === doctorId);
-  const fechas = useMemo(
-    () => (doctorId ? fechasDisponibles(doctorId, 21) : []),
-    [doctorId],
-  );
-  const slots = useMemo(
-    () => (doctorId && fecha ? slotsDisponibles(doctorId, fecha) : []),
-    [doctorId, fecha],
-  );
+
 
   // Reset dependientes cuando cambia un paso previo
   useEffect(() => { setEspecialidad(""); setDoctorId(""); setFecha(""); setHora(""); }, [sede]);
