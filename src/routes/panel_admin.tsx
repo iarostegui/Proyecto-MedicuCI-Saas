@@ -26,7 +26,7 @@ import {
   obtenerUsuarios,
   upsertMedico,
   eliminarMedico,
-} from "@/logica/autenticacion";
+} from "@/servicios/servicio_sesion";
 import type { MedicoRegistro } from "@/datos/medicos_iniciales";
 import { SEDES } from "@/datos/sedes";
 import {
@@ -34,7 +34,7 @@ import {
   exportarCitasCSV,
   exportarPacientesCSV,
   restaurarRespaldoJSON,
-} from "@/logica/exportar";
+} from "@/servicios/servicio_exportacion";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/panel_admin")({

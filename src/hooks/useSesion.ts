@@ -3,7 +3,7 @@ import {
   limpiarSesion,
   obtenerSesion,
   type SesionActiva,
-} from "@/logica/autenticacion";
+} from "@/servicios/servicio_sesion";
 
 /** Hook central de sesión: expone el usuario activo y una función para cerrar sesión. */
 export function useSesion() {

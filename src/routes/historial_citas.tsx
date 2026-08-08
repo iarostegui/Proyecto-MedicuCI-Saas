@@ -10,9 +10,9 @@ import {
   ESTADOS_CITA,
   type Cita,
   type EstadoCita,
-} from "@/logica/citas";
-import { descargarComprobantePDF } from "@/logica/comprobante";
-import { obtenerSesion } from "@/logica/autenticacion";
+} from "@/servicios/servicio_citas";
+import { descargarComprobantePDF } from "@/servicios/servicio_exportacion";
+import { obtenerSesion } from "@/servicios/servicio_sesion";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/historial_citas")({

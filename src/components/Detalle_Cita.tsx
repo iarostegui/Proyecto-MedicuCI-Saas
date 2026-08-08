@@ -23,14 +23,14 @@ import { Button } from "@/components/ui/button";
 import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
 import { Selector_Fecha_Hora } from "@/components/Selector_Fecha_Hora";
 
-import { descargarComprobantePDF } from "@/logica/comprobante";
+import { descargarComprobantePDF } from "@/servicios/servicio_exportacion";
 import {
   cancelarCita,
   registrarAtencion,
   reprogramarCita,
   type Cita,
-} from "@/logica/citas";
-import { obtenerSesion } from "@/logica/autenticacion";
+} from "@/servicios/servicio_citas";
+import { obtenerSesion } from "@/servicios/servicio_sesion";
 import { toast } from "sonner";
 
 export type ModoDetalle = "panel" | "historial" | "medico";
