@@ -167,3 +167,25 @@ export function reprogramarCitaSegura(
 
 /** Fecha de hoy en formato ISO local (helper de presentación). */
 export const hoyISO = fechaLocalISO;
+
+// ===== INICIO SOLID - DIP =====
+// Fachada única para la interfaz: las páginas y componentes importan SIEMPRE
+// desde este servicio y nunca desde `@/logica/citas`.
+// ===== FIN SOLID - DIP =====
+export {
+  ESTADOS_CITA,
+  MOTIVOS_CANCELACION,
+  actualizarCita,
+  cancelarCita,
+  citasDeDoctor,
+  citasDePaciente,
+  crearCita,
+  fechaCorta,
+  formatearFechaLarga,
+  obtenerCitas,
+  registrarAtencion,
+  reprogramarCita,
+  slotOcupado,
+} from "@/logica/citas";
+
+export type { Cita, EstadoCita, MotivoCancelacion, NotaClinica } from "@/logica/citas";

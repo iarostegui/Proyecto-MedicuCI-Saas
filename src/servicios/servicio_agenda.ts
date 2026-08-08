@@ -37,3 +37,20 @@ export function obtenerAgendaMedico(doctorId: string) {
 export function guardarAgendaMedico(disponibilidad: ReturnType<typeof obtenerAgendaMedico>) {
   repositorios().disponibilidad.guardar(disponibilidad);
 }
+
+// ===== INICIO SOLID - DIP =====
+// Fachada de disponibilidad para la interfaz (calendarios, cupos y agenda).
+// ===== FIN SOLID - DIP =====
+export {
+  DIAS_SEMANA_ETIQUETAS,
+  esFechaPasada,
+  fechaLocalISO,
+  fechasDisponibles,
+  guardarDisponibilidad,
+  inicializarDisponibilidad,
+  medicoTieneCupo,
+  obtenerDisponibilidad,
+  slotsDisponibles,
+} from "@/logica/disponibilidad";
+
+export type { Disponibilidad } from "@/logica/disponibilidad";
