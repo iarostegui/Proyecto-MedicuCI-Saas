@@ -33,18 +33,18 @@ import {
   ESTADOS_CITA,
   type Cita,
   type EstadoCita,
-} from "@/logica/citas";
+} from "@/servicios/servicio_citas";
 import { SEDES, type Sede } from "@/datos/sedes";
 import {
   obtenerSesion,
   buscarMedicoPorCorreo,
   type SesionActiva,
-} from "@/logica/autenticacion";
+} from "@/servicios/servicio_sesion";
 import {
   fechasDisponibles,
   slotsDisponibles,
-} from "@/logica/disponibilidad";
-import { exportarCitasCSV, imprimirCitas } from "@/logica/exportar";
+} from "@/servicios/servicio_agenda";
+import { exportarCitasCSV, imprimirCitas } from "@/servicios/servicio_exportacion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 

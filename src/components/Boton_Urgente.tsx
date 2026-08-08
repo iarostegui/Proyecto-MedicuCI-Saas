@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SEDES, type Sede } from "@/datos/sedes";
-import { listarEspecialidades, medicosPorEspecialidadYSede } from "@/logica/medicos";
-import { crearCita } from "@/logica/citas";
-import { obtenerSesion } from "@/logica/autenticacion";
-import { slotsDisponibles, fechasDisponibles } from "@/logica/disponibilidad";
+import { listarEspecialidades, medicosPorEspecialidadYSede } from "@/servicios/servicio_medicos";
+import { crearCita } from "@/servicios/servicio_citas";
+import { obtenerSesion } from "@/servicios/servicio_sesion";
+import { slotsDisponibles, fechasDisponibles } from "@/servicios/servicio_agenda";
 import { toast } from "sonner";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 

@@ -25,12 +25,12 @@ import {
   crearCita,
   formatearFechaLarga,
   type Cita,
-} from "@/logica/citas";
+} from "@/servicios/servicio_citas";
 import {
   especialidadesDisponiblesEnSede,
   medicosDisponibles,
-} from "@/logica/medicos";
-import { obtenerSesion, type SesionActiva } from "@/logica/autenticacion";
+} from "@/servicios/servicio_medicos";
+import { obtenerSesion, type SesionActiva } from "@/servicios/servicio_sesion";
 
 
 

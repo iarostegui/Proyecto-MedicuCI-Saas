@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { EstadoCita } from "@/logica/citas";
+import type { EstadoCita } from "@/servicios/servicio_citas";
 
 const estilos: Record<EstadoCita, string> = {
   Programada: "bg-success/12 text-success ring-success/20",

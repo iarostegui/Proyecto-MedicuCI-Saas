@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { HeartPulse } from "lucide-react";
-import { inicializarAlmacen, obtenerSesion } from "@/logica/autenticacion";
+import { inicializarAlmacen, obtenerSesion } from "@/servicios/servicio_sesion";
 
 export const Route = createFileRoute("/")({
   head: () => ({

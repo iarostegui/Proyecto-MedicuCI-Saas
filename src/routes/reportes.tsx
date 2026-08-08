@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BarChart3, TrendingUp, AlertOctagon } from "lucide-react";
 import { Cascara_App } from "@/components/Cascara_App";
-import { generarReporte, type Conteo, type ResumenReportes } from "@/logica/reportes";
+import { generarReporte, type Conteo, type ResumenReportes } from "@/servicios/servicio_reportes";
 import { SEDES } from "@/datos/sedes";
-import { obtenerSesion } from "@/logica/autenticacion";
+import { obtenerSesion } from "@/servicios/servicio_sesion";
 
 export const Route = createFileRoute("/reportes")({
   head: () => ({

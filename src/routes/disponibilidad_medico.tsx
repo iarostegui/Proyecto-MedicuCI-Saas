@@ -7,8 +7,8 @@ import {
   guardarDisponibilidad,
   DIAS_SEMANA_ETIQUETAS,
   type Disponibilidad,
-} from "@/logica/disponibilidad";
-import { obtenerSesion, buscarMedicoPorCorreo } from "@/logica/autenticacion";
+} from "@/servicios/servicio_agenda";
+import { obtenerSesion, buscarMedicoPorCorreo } from "@/servicios/servicio_sesion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CalendarClock, Plus, X } from "lucide-react";

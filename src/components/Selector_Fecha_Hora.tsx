@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fechasDeMedico, horariosDeMedico } from "@/servicios/servicio_agenda";
-import { formatearFechaLarga } from "@/logica/citas";
-import { fechaLocalISO } from "@/logica/disponibilidad";
+import { formatearFechaLarga } from "@/servicios/servicio_citas";
+import { fechaLocalISO } from "@/servicios/servicio_agenda";
 
 interface Props {
   doctorId: string;

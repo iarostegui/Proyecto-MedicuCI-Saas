@@ -31,7 +31,7 @@ import {
   validarDni,
   validarFechaEmision,
   validarNombre,
-} from "@/logica/autenticacion";
+} from "@/servicios/servicio_sesion";
 import {
   iniciarSesionSegura,
   registrarPacienteSeguro,

@@ -7,7 +7,7 @@ import {
   marcarLeidas,
   notificacionesDe,
   type Notificacion,
-} from "@/logica/notificaciones";
+} from "@/servicios/servicio_notificaciones";
 import { cn } from "@/lib/utils";
 
 const ESTILO_TIPO: Record<Notificacion["tipo"], string> = {
