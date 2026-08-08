@@ -9,49 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ReportesRouteImport } from './routes/reportes'
-import { Route as Panel_principalRouteImport } from './routes/panel_principal'
-import { Route as Panel_medicoRouteImport } from './routes/panel_medico'
-import { Route as Panel_adminRouteImport } from './routes/panel_admin'
-import { Route as Inicio_sesionRouteImport } from './routes/inicio_sesion'
-import { Route as Historial_citasRouteImport } from './routes/historial_citas'
-import { Route as Disponibilidad_medicoRouteImport } from './routes/disponibilidad_medico'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as Disponibilidad_medicoRouteImport } from './routes/disponibilidad_medico'
+import { Route as Historial_citasRouteImport } from './routes/historial_citas'
+import { Route as Inicio_sesionRouteImport } from './routes/inicio_sesion'
+import { Route as Panel_adminRouteImport } from './routes/panel_admin'
+import { Route as Panel_medicoRouteImport } from './routes/panel_medico'
+import { Route as Panel_principalRouteImport } from './routes/panel_principal'
+import { Route as ReportesRouteImport } from './routes/reportes'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportesRoute = ReportesRouteImport.update({
-  id: '/reportes',
-  path: '/reportes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Panel_principalRoute = Panel_principalRouteImport.update({
-  id: '/panel_principal',
-  path: '/panel_principal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Panel_medicoRoute = Panel_medicoRouteImport.update({
-  id: '/panel_medico',
-  path: '/panel_medico',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Panel_adminRoute = Panel_adminRouteImport.update({
-  id: '/panel_admin',
-  path: '/panel_admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Inicio_sesionRoute = Inicio_sesionRouteImport.update({
-  id: '/inicio_sesion',
-  path: '/inicio_sesion',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Historial_citasRoute = Historial_citasRouteImport.update({
-  id: '/historial_citas',
-  path: '/historial_citas',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Disponibilidad_medicoRoute = Disponibilidad_medicoRouteImport.update({
@@ -59,9 +29,39 @@ const Disponibilidad_medicoRoute = Disponibilidad_medicoRouteImport.update({
   path: '/disponibilidad_medico',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const Historial_citasRoute = Historial_citasRouteImport.update({
+  id: '/historial_citas',
+  path: '/historial_citas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Inicio_sesionRoute = Inicio_sesionRouteImport.update({
+  id: '/inicio_sesion',
+  path: '/inicio_sesion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Panel_adminRoute = Panel_adminRouteImport.update({
+  id: '/panel_admin',
+  path: '/panel_admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Panel_medicoRoute = Panel_medicoRouteImport.update({
+  id: '/panel_medico',
+  path: '/panel_medico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Panel_principalRoute = Panel_principalRouteImport.update({
+  id: '/panel_principal',
+  path: '/panel_principal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportesRoute = ReportesRouteImport.update({
+  id: '/reportes',
+  path: '/reportes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -149,53 +149,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reportes': {
-      id: '/reportes'
-      path: '/reportes'
-      fullPath: '/reportes'
-      preLoaderRoute: typeof ReportesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel_principal': {
-      id: '/panel_principal'
-      path: '/panel_principal'
-      fullPath: '/panel_principal'
-      preLoaderRoute: typeof Panel_principalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel_medico': {
-      id: '/panel_medico'
-      path: '/panel_medico'
-      fullPath: '/panel_medico'
-      preLoaderRoute: typeof Panel_medicoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel_admin': {
-      id: '/panel_admin'
-      path: '/panel_admin'
-      fullPath: '/panel_admin'
-      preLoaderRoute: typeof Panel_adminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/inicio_sesion': {
-      id: '/inicio_sesion'
-      path: '/inicio_sesion'
-      fullPath: '/inicio_sesion'
-      preLoaderRoute: typeof Inicio_sesionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/historial_citas': {
-      id: '/historial_citas'
-      path: '/historial_citas'
-      fullPath: '/historial_citas'
-      preLoaderRoute: typeof Historial_citasRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/disponibilidad_medico': {
@@ -205,11 +163,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Disponibilidad_medicoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/historial_citas': {
+      id: '/historial_citas'
+      path: '/historial_citas'
+      fullPath: '/historial_citas'
+      preLoaderRoute: typeof Historial_citasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inicio_sesion': {
+      id: '/inicio_sesion'
+      path: '/inicio_sesion'
+      fullPath: '/inicio_sesion'
+      preLoaderRoute: typeof Inicio_sesionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel_admin': {
+      id: '/panel_admin'
+      path: '/panel_admin'
+      fullPath: '/panel_admin'
+      preLoaderRoute: typeof Panel_adminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel_medico': {
+      id: '/panel_medico'
+      path: '/panel_medico'
+      fullPath: '/panel_medico'
+      preLoaderRoute: typeof Panel_medicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel_principal': {
+      id: '/panel_principal'
+      path: '/panel_principal'
+      fullPath: '/panel_principal'
+      preLoaderRoute: typeof Panel_principalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reportes': {
+      id: '/reportes'
+      path: '/reportes'
+      fullPath: '/reportes'
+      preLoaderRoute: typeof ReportesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
