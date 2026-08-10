@@ -99,7 +99,7 @@ function Pagina_Inicio_Sesion() {
     setErroresLogin({});
   }
 
-  function manejarLogin(e: React.FormEvent) {
+  async function manejarLogin(e: React.FormEvent) {
     e.preventDefault();
     inicializarAlmacen();
     const errs: Errores_Login = {};
@@ -114,9 +114,10 @@ function Pagina_Inicio_Sesion() {
     const correo = correoLogin.trim();
 
     // ===== INICIO OWASP A2 =====
-    // La verificación de credenciales (BCrypt + emisión de JWT) vive en el
-    // servicio de autenticación; la vista sólo muestra el resultado.
-    const acceso = iniciarSesionSegura(correo, contrasenaLogin);
+    // La verificación de credenciales (BCrypt + JWT) vive en el backend MySQL
+    // o, en la vista previa, en el servicio local. La vista sólo muestra el
+    // resultado y nunca compara contraseñas.
+    const acceso = await iniciarSesion(correo, contrasenaLogin);
     if (!acceso.ok) {
       setErroresLogin({ form: acceso.error });
       return;
