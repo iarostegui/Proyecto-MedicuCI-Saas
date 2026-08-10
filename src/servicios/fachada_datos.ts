@@ -1,0 +1,252 @@
+// ===== SOLID - SRP =====
+// FACHADA DE DATOS: única puerta que usan las pantallas para leer/escribir.
+// Decide en tiempo de ejecución si habla con la API (MySQL en Vercel) o con el
+// almacenamiento local (vista previa). La interfaz siempre es asíncrona, por lo
+// que migrar una pantalla no vuelve a cambiar cuando la API queda disponible.
+//
+// ===== SOLID - DIP / OCP =====
+// Las vistas dependen de esta abstracción; añadir un origen nuevo no obliga a
+// modificar componentes ni servicios de dominio.
+import { usandoApi } from "@/servicios/origen_datos";
+import { api, guardarToken, borrarToken, ErrorApi } from "@/servicios/cliente_api";
+import {
+  iniciarSesionSegura,
+  registrarPacienteSeguro,
+  cerrarSesionSegura,
+  type ResultadoAcceso,
+} from "@/servicios/servicio_autenticacion";
+import {
+  agendarCita,
+  cancelarCitaSegura,
+  listarCitasDelMedico,
+  listarCitasDelPaciente,
+  reprogramarCitaSegura,
+  type DatosNuevaCita,
+  type ResultadoOperacion,
+} from "@/servicios/servicio_citas";
+import { fechasDeMedico, horariosDeMedico } from "@/servicios/servicio_agenda";
+import type { Cita, EstadoCita } from "@/modelos";
+import type { ActorAutenticado } from "@/seguridad/autorizacion";
+import { establecerSesion, type SesionActiva } from "@/servicios/servicio_sesion";
+
+// ---------------------------------------------------------------- mapeos API
+interface FilaCitaApi {
+  id_cita: number;
+  codigo_cita: string;
+  fecha: string;
+  hora: string;
+  observaciones?: string | null;
+  urgente?: number | boolean;
+  fecha_registro?: string;
+  estado: string;
+  paciente_nombres?: string;
+  paciente_apellidos?: string | null;
+  id_medico: number;
+  medico_nombres?: string;
+  medico_apellidos?: string | null;
+  especialidad: string;
+  sede: string;
+}
+
+function aCita(fila: FilaCitaApi, correoPaciente: string): Cita {
+  return {
+    codigo: fila.codigo_cita,
+    pacienteCorreo: correoPaciente,
+    pacienteNombre: `${fila.paciente_nombres ?? ""} ${fila.paciente_apellidos ?? ""}`.trim(),
+    doctorId: String(fila.id_medico),
+    doctorNombre: `${fila.medico_nombres ?? ""} ${fila.medico_apellidos ?? ""}`.trim(),
+    especialidad: fila.especialidad,
+    sede: fila.sede,
+    fecha: String(fila.fecha).slice(0, 10),
+    hora: String(fila.hora).slice(0, 5),
+    estado: fila.estado as EstadoCita,
+    esUrgente: Boolean(fila.urgente),
+    observaciones: fila.observaciones ?? undefined,
+    fechaCreacion: fila.fecha_registro ?? new Date().toISOString(),
+  };
+}
+
+function mensaje(error: unknown, respaldo: string): string {
+  return error instanceof ErrorApi ? error.message : respaldo;
+}
+
+// ------------------------------------------------------------ autenticación
+export async function iniciarSesion(
+  correo: string,
+  contrasena: string,
+): Promise<ResultadoAcceso> {
+  if (await usandoApi()) {
+    try {
+      const r = await api.post<{ token: string; sesion: { correo: string; rol: SesionActiva["rol"]; idMedico?: number } }>(
+        "/auth/login",
+        { correo, contrasena },
+      );
+      guardarToken(r.token);
+      const perfil = (await api.get<Record<string, unknown>>("/auth/perfil")) ?? {};
+      const nombre = `${String(perfil["nombres"] ?? "")} ${String(perfil["apellidos"] ?? "")}`.trim();
+      const sesion: SesionActiva = {
+        correo: r.sesion.correo,
+        nombre: nombre || r.sesion.correo,
+        rol: r.sesion.rol,
+        ...(r.sesion.idMedico ? { medicoId: String(r.sesion.idMedico) } : {}),
+      };
+      establecerSesion(sesion);
+      const destino =
+        sesion.rol === "Medico" ? "/panel_medico" : sesion.rol === "Admin" ? "/panel_admin" : "/panel_principal";
+      return { ok: true, sesion, destino };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "Correo o contraseña incorrectos.") };
+    }
+  }
+  return iniciarSesionSegura(correo, contrasena);
+}
+
+export interface DatosRegistro {
+  dni: string;
+  fechaEmision: string;
+  nombre: string;
+  correo: string;
+  contrasena: string;
+  especialidades: string[];
+}
+
+export async function registrarPaciente(datos: DatosRegistro): Promise<ResultadoAcceso> {
+  if (await usandoApi()) {
+    try {
+      const r = await api.post<{ token: string; sesion: { correo: string; rol: SesionActiva["rol"] } }>(
+        "/auth/registro",
+        {
+          correo: datos.correo,
+          contrasena: datos.contrasena,
+          dni: datos.dni,
+          fechaEmisionDni: datos.fechaEmision,
+          nombres: datos.nombre,
+          preferencias: datos.especialidades,
+        },
+      );
+      guardarToken(r.token);
+      const sesion: SesionActiva = { correo: r.sesion.correo, nombre: datos.nombre, rol: "Paciente" };
+      establecerSesion(sesion);
+      return { ok: true, sesion, destino: "/panel_principal" };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "No se pudo completar el registro.") };
+    }
+  }
+  return registrarPacienteSeguro(datos);
+}
+
+export async function cerrarSesion(): Promise<void> {
+  borrarToken();
+  cerrarSesionSegura();
+}
+
+// -------------------------------------------------------------------- citas
+export async function citasDelPaciente(actor: ActorAutenticado): Promise<Cita[]> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<FilaCitaApi[]>("/citas");
+      return filas.map((f) => aCita(f, actor.correo));
+    } catch {
+      return [];
+    }
+  }
+  return listarCitasDelPaciente(actor);
+}
+
+export async function citasDelMedico(actor: ActorAutenticado): Promise<Cita[]> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<FilaCitaApi[]>("/citas");
+      return filas.map((f) => aCita(f, ""));
+    } catch {
+      return [];
+    }
+  }
+  return listarCitasDelMedico(actor);
+}
+
+export async function crearCitaDatos(
+  actor: ActorAutenticado,
+  nombrePaciente: string,
+  datos: DatosNuevaCita & { idMedico?: number; idSede?: number; idEspecialidad?: number },
+): Promise<ResultadoOperacion<Cita>> {
+  if (await usandoApi()) {
+    try {
+      const fila = await api.post<FilaCitaApi>("/citas", {
+        idMedico: datos.idMedico ?? Number(datos.doctorId),
+        idSede: datos.idSede,
+        idEspecialidad: datos.idEspecialidad,
+        fecha: datos.fecha,
+        hora: datos.hora,
+        urgente: datos.esUrgente ?? false,
+        observaciones: datos.observaciones,
+      });
+      return { ok: true, datos: aCita(fila, actor.correo) };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "No se pudo agendar la cita.") };
+    }
+  }
+  return agendarCita(actor, nombrePaciente, datos);
+}
+
+export async function cancelar(
+  actor: ActorAutenticado,
+  codigo: string,
+  motivo: string,
+  idCita?: number,
+): Promise<ResultadoOperacion<Cita>> {
+  if (await usandoApi()) {
+    try {
+      await api.patch(`/citas/${idCita ?? codigo}/cancelar`, { motivo });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "No se pudo cancelar la cita.") };
+    }
+  }
+  return cancelarCitaSegura(actor, codigo, motivo);
+}
+
+export async function reprogramar(
+  actor: ActorAutenticado,
+  codigo: string,
+  fecha: string,
+  hora: string,
+  idCita?: number,
+): Promise<ResultadoOperacion<Cita>> {
+  if (await usandoApi()) {
+    try {
+      await api.patch(`/citas/${idCita ?? codigo}/reprogramar`, { fecha, hora });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "No se pudo reprogramar la cita.") };
+    }
+  }
+  return reprogramarCitaSegura(actor, codigo, fecha, hora);
+}
+
+// -------------------------------------------------------------- agenda
+export async function fechasLibres(doctorId: string): Promise<string[]> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<{ fecha: string }[]>(`/disponibilidad?idMedico=${doctorId}&soloFechas=1`);
+      return filas.map((f) => String(f.fecha).slice(0, 10));
+    } catch {
+      return [];
+    }
+  }
+  return fechasDeMedico(doctorId);
+}
+
+export async function horasLibres(doctorId: string, fecha: string): Promise<string[]> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<{ hora: string }[]>(
+        `/disponibilidad?idMedico=${doctorId}&fecha=${fecha}`,
+      );
+      return filas.map((f) => String(f.hora).slice(0, 5));
+    } catch {
+      return [];
+    }
+  }
+  return horariosDeMedico(doctorId, fecha);
+}

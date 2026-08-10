@@ -32,10 +32,10 @@ import {
   validarFechaEmision,
   validarNombre,
 } from "@/servicios/servicio_sesion";
-import {
-  iniciarSesionSegura,
-  registrarPacienteSeguro,
-} from "@/servicios/servicio_autenticacion";
+// ===== SOLID - DIP =====
+// La vista habla con la FACHADA DE DATOS: si la API MySQL está disponible usa
+// el backend real; si no (vista previa), cae al almacenamiento local.
+import { iniciarSesion, registrarPaciente } from "@/servicios/fachada_datos";
 
 
 export const Route = createFileRoute("/inicio_sesion")({
@@ -99,7 +99,7 @@ function Pagina_Inicio_Sesion() {
     setErroresLogin({});
   }
 
-  function manejarLogin(e: React.FormEvent) {
+  async function manejarLogin(e: React.FormEvent) {
     e.preventDefault();
     inicializarAlmacen();
     const errs: Errores_Login = {};
@@ -114,9 +114,10 @@ function Pagina_Inicio_Sesion() {
     const correo = correoLogin.trim();
 
     // ===== INICIO OWASP A2 =====
-    // La verificación de credenciales (BCrypt + emisión de JWT) vive en el
-    // servicio de autenticación; la vista sólo muestra el resultado.
-    const acceso = iniciarSesionSegura(correo, contrasenaLogin);
+    // La verificación de credenciales (BCrypt + JWT) vive en el backend MySQL
+    // o, en la vista previa, en el servicio local. La vista sólo muestra el
+    // resultado y nunca compara contraseñas.
+    const acceso = await iniciarSesion(correo, contrasenaLogin);
     if (!acceso.ok) {
       setErroresLogin({ form: acceso.error });
       return;
@@ -126,7 +127,7 @@ function Pagina_Inicio_Sesion() {
   }
 
 
-  function manejarRegistro(e: React.FormEvent) {
+  async function manejarRegistro(e: React.FormEvent) {
     e.preventDefault();
     inicializarAlmacen();
     const errs: Errores_Registro = {};
@@ -162,8 +163,9 @@ function Pagina_Inicio_Sesion() {
     }
 
     // ===== INICIO OWASP A2 =====
-    // El registro delega en el servicio: hashea con BCrypt y emite el JWT.
-    const alta = registrarPacienteSeguro({
+    // El alta viaja a la API (BCrypt + JWT en el servidor) o, sin API, al
+    // servicio local equivalente.
+    const alta = await registrarPaciente({
       dni,
       fechaEmision,
       nombre: nombre.trim(),
