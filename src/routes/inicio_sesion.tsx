@@ -127,7 +127,7 @@ function Pagina_Inicio_Sesion() {
   }
 
 
-  function manejarRegistro(e: React.FormEvent) {
+  async function manejarRegistro(e: React.FormEvent) {
     e.preventDefault();
     inicializarAlmacen();
     const errs: Errores_Registro = {};
@@ -163,8 +163,9 @@ function Pagina_Inicio_Sesion() {
     }
 
     // ===== INICIO OWASP A2 =====
-    // El registro delega en el servicio: hashea con BCrypt y emite el JWT.
-    const alta = registrarPacienteSeguro({
+    // El alta viaja a la API (BCrypt + JWT en el servidor) o, sin API, al
+    // servicio local equivalente.
+    const alta = await registrarPaciente({
       dni,
       fechaEmision,
       nombre: nombre.trim(),
