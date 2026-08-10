@@ -32,10 +32,10 @@ import {
   validarFechaEmision,
   validarNombre,
 } from "@/servicios/servicio_sesion";
-import {
-  iniciarSesionSegura,
-  registrarPacienteSeguro,
-} from "@/servicios/servicio_autenticacion";
+// ===== SOLID - DIP =====
+// La vista habla con la FACHADA DE DATOS: si la API MySQL está disponible usa
+// el backend real; si no (vista previa), cae al almacenamiento local.
+import { iniciarSesion, registrarPaciente } from "@/servicios/fachada_datos";
 
 
 export const Route = createFileRoute("/inicio_sesion")({
