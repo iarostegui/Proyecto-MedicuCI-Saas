@@ -106,3 +106,42 @@ GET    /api/auditoria
 La vista previa de Lovable se ejecuta en Cloudflare Workers, que **no admite conexiones TCP a MySQL**.
 Por eso la carpeta `api/` está escrita para el runtime Node de Vercel: allí funciona la conexión real
 a Aiven. Mientras se trabaja en la vista previa, la app sigue usando el almacenamiento local existente.
+
+## 7. Paso 3 — Conmutación automática de origen de datos (frontend)
+
+Las pantallas ya no eligen entre "local" y "MySQL": lo resuelve la fachada.
+
+- `src/servicios/origen_datos.ts` — consulta `GET /api/salud` una sola vez por
+  sesión del navegador y cachea el resultado (`api` | `local`).
+- `src/servicios/fachada_datos.ts` — API asíncrona única (`iniciarSesion`,
+  `registrarPaciente`, `citasDelPaciente`, `citasDelMedico`, `crearCitaDatos`,
+  `cancelar`, `reprogramar`, `fechasLibres`, `horasLibres`). Si hay API, habla
+  con MySQL y guarda el JWT emitido por el backend; si no, delega en los
+  servicios locales existentes con la misma firma.
+- `src/routes/inicio_sesion.tsx` — login y registro ya pasan por la fachada.
+
+Así, desplegado en Vercel con las variables configuradas, la app usa MySQL sin
+tocar más código; en la vista previa sigue funcionando con datos locales.
+
+## 8. Paso 4 — Datos iniciales y despliegue
+
+**`database/semillas_medicu_ci.sql`** (ejecutar después del esquema, es idempotente):
+
+1. Estados de cita: Programada, Reprogramada, Cancelada, Atendida, No asistió.
+2. Las 5 sedes.
+3. Las 8 especialidades utilizadas por el sistema.
+4. `admin@medicu.ci.com` (contraseña `Admin2026`, hash BCrypt ya incluido).
+5. Las 14 cuentas institucionales `@medicu.ci.com` (contraseña `Medicu2026`)
+   con su médico, especialidad y sede.
+6. Disponibilidad de ejemplo: 08:00–13:00 en bloques de 30 min, 21 días, sin domingos.
+
+> Cambie las contraseñas sembradas antes de usar el sistema en producción.
+
+**`vercel.json`** fija el runtime Node para `api/[...ruta].ts`, el build de Vite
+y cabeceras de seguridad (`no-store`, `nosniff`, `no-referrer`) para `/api/*`.
+
+**Orden de despliegue**
+1. Aiven: ejecutar `database/esquema_medicu_ci.sql` y luego `database/semillas_medicu_ci.sql`.
+2. Vercel: crear las variables de entorno de la sección 2 (Production y Preview).
+3. Desplegar y verificar `https://<dominio>/api/salud` → `{"ok":true}`.
+4. Entrar con una cuenta sembrada; la app detectará la API y usará MySQL.
