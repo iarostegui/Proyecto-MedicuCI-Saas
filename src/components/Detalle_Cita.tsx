@@ -24,12 +24,10 @@ import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado"
 import { Selector_Fecha_Hora } from "@/components/Selector_Fecha_Hora";
 
 import { descargarComprobantePDF } from "@/servicios/servicio_exportacion";
-import {
-  cancelarCita,
-  registrarAtencion,
-  reprogramarCita,
-  type Cita,
-} from "@/servicios/servicio_citas";
+import { registrarAtencion, type Cita } from "@/servicios/servicio_citas";
+// ===== SOLID - DIP =====
+// Cancelar y reprogramar pasan por la fachada (API MySQL o almacén local).
+import { actorActual, cancelar, reprogramar } from "@/servicios/fachada_datos";
 import { obtenerSesion } from "@/servicios/servicio_sesion";
 import { toast } from "sonner";
 
@@ -89,14 +87,22 @@ export function Detalle_Cita({
     onCerrar();
   }
 
-  function confirmarCancelar() {
+  async function confirmarCancelar() {
     const esMedico = modoEfectivo === "medico";
     if (esMedico && !motivo.trim()) {
       toast.error("El motivo de cancelación es obligatorio.");
       return;
     }
-    const motivoBase = esMedico ? "Cancelada por el médico" : "Cancelada por el paciente";
-    cancelarCita(cita.codigo, motivoBase, motivo.trim() || undefined);
+    const actor = actorActual();
+    if (!actor) {
+      toast.error("Tu sesión expiró. Vuelve a iniciar sesión.");
+      return;
+    }
+    const r = await cancelar(actor, cita.codigo, motivo.trim());
+    if (!r.ok) {
+      toast.error(r.error ?? "No se pudo cancelar la cita.");
+      return;
+    }
     toast.success("Cita cancelada", {
       description: `Se liberó el horario ${cita.hora} del ${cita.fecha}.`,
     });
@@ -105,14 +111,19 @@ export function Detalle_Cita({
   }
 
 
-  function confirmarReprogramar() {
+  async function confirmarReprogramar() {
     if (!fechaNueva || !horaNueva) {
       toast.error("Selecciona una nueva fecha y hora.");
       return;
     }
-    const r = reprogramarCita(cita.codigo, fechaNueva, horaNueva);
+    const actor = actorActual();
+    if (!actor) {
+      toast.error("Tu sesión expiró. Vuelve a iniciar sesión.");
+      return;
+    }
+    const r = await reprogramar(actor, cita.codigo, fechaNueva, horaNueva);
     if (!r.ok) {
-      toast.error(r.error);
+      toast.error(r.error ?? "No se pudo reprogramar la cita.");
       return;
     }
     toast.success("Cita reprogramada", {
@@ -295,7 +306,7 @@ export function Detalle_Cita({
               <Button variant="ghost" onClick={() => setPantalla("detalle")}>
                 Volver
               </Button>
-              <Button variant="destructive" onClick={confirmarCancelar}>
+              <Button variant="destructive" onClick={() => void confirmarCancelar()}>
                 Confirmar cancelación
               </Button>
             </DialogFooter>
@@ -326,7 +337,7 @@ export function Detalle_Cita({
               <Button variant="ghost" onClick={() => setPantalla("detalle")}>
                 Volver
               </Button>
-              <Button onClick={confirmarReprogramar} disabled={!fechaNueva || !horaNueva}>
+              <Button onClick={() => void confirmarReprogramar()} disabled={!fechaNueva || !horaNueva}>
                 Confirmar reprogramación
               </Button>
             </DialogFooter>
