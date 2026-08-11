@@ -28,8 +28,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  citasDeDoctor,
-  cancelarCita,
   ESTADOS_CITA,
   type Cita,
   type EstadoCita,
@@ -45,6 +43,9 @@ import {
   slotsDisponibles,
 } from "@/servicios/servicio_agenda";
 import { exportarCitasCSV, imprimirCitas } from "@/servicios/servicio_exportacion";
+// ===== SOLID - DIP =====
+// El panel del médico lee y cancela por la fachada (MySQL o local).
+import { actorActual, cancelar, citasDelMedico } from "@/servicios/fachada_datos";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -78,8 +79,10 @@ function Pagina_Panel_Medico() {
   const [modalCancelar, setModalCancelar] = useState(false);
   const [motivoDetalle, setMotivoDetalle] = useState("");
 
-  function recargar(id: string) {
-    setCitas(citasDeDoctor(id));
+  async function recargar() {
+    const actor = actorActual();
+    if (!actor) return;
+    setCitas(await citasDelMedico(actor));
   }
 
   useEffect(() => {
@@ -99,7 +102,7 @@ function Pagina_Panel_Medico() {
     }
     setSesion(s);
     setDoctorId(medico.id);
-    recargar(medico.id);
+    void recargar();
   }, [navigate]);
 
   // KPIs — todos calculados sólo sobre las citas del médico logueado.
@@ -171,21 +174,26 @@ function Pagina_Panel_Medico() {
     setSeleccionadas(n);
   }
 
-  function confirmarCancelacion() {
+  async function confirmarCancelacion() {
     if (!motivoDetalle.trim()) {
       toast.error("El motivo es obligatorio para cancelar.");
       return;
     }
+    const actor = actorActual();
+    if (!actor) {
+      toast.error("Tu sesión expiró. Vuelve a iniciar sesión.");
+      return;
+    }
     let n = 0;
-    seleccionadas.forEach((cod) => {
-      cancelarCita(cod, "Cancelada por el médico", motivoDetalle.trim());
-      n++;
-    });
+    for (const cod of seleccionadas) {
+      const r = await cancelar(actor, cod, motivoDetalle.trim());
+      if (r.ok) n++;
+    }
     toast.success(`${n} cita${n !== 1 ? "s" : ""} cancelada${n !== 1 ? "s" : ""}`);
     setSeleccionadas(new Set());
     setModalCancelar(false);
     setMotivoDetalle("");
-    recargar(doctorId);
+    void recargar();
   }
 
   function exportarMisCitas() {
@@ -378,7 +386,7 @@ function Pagina_Panel_Medico() {
           abierto={!!detalle}
           modo="medico"
           onCerrar={() => setDetalle(null)}
-          onCambio={() => recargar(doctorId)}
+          onCambio={() => void recargar()}
         />
       )}
 
@@ -410,7 +418,7 @@ function Pagina_Panel_Medico() {
             <Button variant="ghost" onClick={() => setModalCancelar(false)}>
               Volver
             </Button>
-            <Button variant="destructive" onClick={confirmarCancelacion}>
+            <Button variant="destructive" onClick={() => void confirmarCancelacion()}>
               Confirmar cancelación
             </Button>
           </DialogFooter>

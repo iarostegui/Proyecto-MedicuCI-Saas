@@ -189,10 +189,7 @@ function Pagina_Historial_Citas() {
           abierto={!!seleccion}
           modo="historial"
           onCerrar={() => setSeleccion(null)}
-          onCambio={() => {
-            const s = obtenerSesion();
-            if (s) recargar(s.correo);
-          }}
+          onCambio={() => void recargar()}
         />
       )}
 
