@@ -145,3 +145,28 @@ y cabeceras de seguridad (`no-store`, `nosniff`, `no-referrer`) para `/api/*`.
 2. Vercel: crear las variables de entorno de la sección 2 (Production y Preview).
 3. Desplegar y verificar `https://<dominio>/api/salud` → `{"ok":true}`.
 4. Entrar con una cuenta sembrada; la app detectará la API y usará MySQL.
+
+## 9. Pasos 5, 6 y 7 — Migración completa de pantallas a la fachada
+
+**Paso 5 — Paciente**
+- `src/routes/panel_principal.tsx`: carga de próximas citas, catálogos (sedes,
+  especialidades, médicos) y creación de la cita mediante
+  `citasDelPaciente`, `sedesDatos`, `especialidadesDeSedeDatos`, `medicosDatos`
+  y `crearCitaDatos`. Con API activa envía `idMedico`, `idSede` e
+  `idEspecialidad` reales de MySQL.
+- `src/routes/historial_citas.tsx`: historial vía `citasDelPaciente`.
+
+**Paso 6 — Acciones sobre la cita y agenda**
+- `src/components/Detalle_Cita.tsx`: cancelar y reprogramar pasan por
+  `cancelar` / `reprogramar` de la fachada, con el actor de sesión.
+- `src/components/Selector_Fecha_Hora.tsx`: fechas y horas se piden con
+  `fechasLibres` / `horasLibres` (asíncrono, con estado de carga).
+
+**Paso 7 — Médico**
+- `src/routes/panel_medico.tsx`: agenda propia con `citasDelMedico` y
+  cancelación individual o masiva con `cancelar` (motivo obligatorio).
+
+**Nuevas funciones de la fachada** (`src/servicios/fachada_datos.ts`):
+`actorActual()`, `sedesDatos()`, `especialidadesDeSedeDatos()`, `medicosDatos()`.
+Todas caen automáticamente al almacén local si `/api/salud` no responde, por lo
+que la vista previa sigue funcionando sin MySQL.

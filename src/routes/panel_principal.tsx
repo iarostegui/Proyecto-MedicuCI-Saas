@@ -19,17 +19,20 @@ import { Selector_Fecha_Hora } from "@/components/Selector_Fecha_Hora";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { SEDES, type Sede } from "@/datos/sedes";
+import { formatearFechaLarga, type Cita } from "@/servicios/servicio_citas";
+// ===== SOLID - DIP =====
+// La pantalla depende de la fachada: no sabe si los datos vienen de MySQL o local.
 import {
-  citasDePaciente,
-  crearCita,
-  formatearFechaLarga,
-  type Cita,
-} from "@/servicios/servicio_citas";
-import {
-  especialidadesDisponiblesEnSede,
-  medicosDisponibles,
-} from "@/servicios/servicio_medicos";
+  actorActual,
+  citasDelPaciente,
+  crearCitaDatos,
+  sedesDatos,
+  especialidadesDeSedeDatos,
+  medicosDatos,
+  type OpcionSede,
+  type OpcionEspecialidad,
+  type OpcionMedico,
+} from "@/servicios/fachada_datos";
 import { obtenerSesion, type SesionActiva } from "@/servicios/servicio_sesion";
 
 
@@ -54,9 +57,12 @@ function Pagina_Panel_Principal() {
   const [abierto, setAbierto] = useState(false);
   const [detalle, setDetalle] = useState<Cita | null>(null);
 
-  const recargar = useCallback((correo: string) => {
+  const recargar = useCallback(async () => {
+    const actor = actorActual();
+    if (!actor) return;
+    const lista = await citasDelPaciente(actor);
     setCitas(
-      citasDePaciente(correo)
+      lista
         .filter((c) => c.estado !== "Cancelada" && c.estado !== "Atendida")
         .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora)),
     );
@@ -73,7 +79,7 @@ function Pagina_Panel_Principal() {
       return;
     }
     setSesion(s);
-    recargar(s.correo);
+    void recargar();
   }, [navigate, recargar]);
 
   const agrupadas = useMemo(() => {
@@ -191,9 +197,7 @@ function Pagina_Panel_Principal() {
           abierto={!!detalle}
           modo="panel"
           onCerrar={() => setDetalle(null)}
-          onCambio={() => {
-            if (sesion) recargar(sesion.correo);
-          }}
+          onCambio={() => void recargar()}
         />
       )}
     </Cascara_App>
@@ -222,46 +226,71 @@ function Asistente_Reserva({
   onGuardar: (c: Cita) => void;
 }) {
   const [paso, setPaso] = useState<Paso>(1);
-  const [sede, setSede] = useState<Sede | "">("");
-  const [especialidad, setEspecialidad] = useState<string>("");
+  const [sedes, setSedes] = useState<OpcionSede[]>([]);
+  const [sede, setSede] = useState<OpcionSede | null>(null);
+  const [especialidades, setEspecialidades] = useState<OpcionEspecialidad[]>([]);
+  const [especialidad, setEspecialidad] = useState<OpcionEspecialidad | null>(null);
+  const [doctores, setDoctores] = useState<OpcionMedico[]>([]);
   const [doctorId, setDoctorId] = useState<string>("");
   const [fecha, setFecha] = useState<string>("");
   const [hora, setHora] = useState<string>("");
+  const [guardando, setGuardando] = useState(false);
 
-  const especialidades = useMemo(
-    () => (sede ? especialidadesDisponiblesEnSede(sede as Sede) : []),
-    [sede],
-  );
-  const doctores = useMemo(
-    () =>
-      sede && especialidad
-        ? medicosDisponibles(especialidad, sede as Sede)
-        : [],
-    [sede, especialidad],
-  );
   const doctorSel = doctores.find((d) => d.id === doctorId);
+
+  useEffect(() => {
+    void sedesDatos().then(setSedes);
+  }, []);
+
+  useEffect(() => {
+    if (!sede) {
+      setEspecialidades([]);
+      return;
+    }
+    void especialidadesDeSedeDatos(sede).then(setEspecialidades);
+  }, [sede]);
+
+  useEffect(() => {
+    if (!sede || !especialidad) {
+      setDoctores([]);
+      return;
+    }
+    void medicosDatos(sede, especialidad).then(setDoctores);
+  }, [sede, especialidad]);
 
 
   // Reset dependientes cuando cambia un paso previo
-  useEffect(() => { setEspecialidad(""); setDoctorId(""); setFecha(""); setHora(""); }, [sede]);
+  useEffect(() => { setEspecialidad(null); setDoctorId(""); setFecha(""); setHora(""); }, [sede]);
   useEffect(() => { setDoctorId(""); setFecha(""); setHora(""); }, [especialidad]);
   useEffect(() => { setFecha(""); setHora(""); }, [doctorId]);
   useEffect(() => { setHora(""); }, [fecha]);
 
 
-  function confirmar() {
+  async function confirmar() {
     if (!sede || !especialidad || !doctorSel || !fecha || !hora) return;
-    const nueva = crearCita({
-      pacienteCorreo: sesion.correo,
-      pacienteNombre: sesion.nombre,
+    const actor = actorActual();
+    if (!actor) {
+      toast.error("Tu sesión expiró. Vuelve a iniciar sesión.");
+      return;
+    }
+    setGuardando(true);
+    const r = await crearCitaDatos(actor, sesion.nombre, {
       doctorId: doctorSel.id,
       doctorNombre: doctorSel.nombre,
-      especialidad,
-      sede,
+      especialidad: especialidad.nombre,
+      sede: sede.nombre,
       fecha,
       hora,
+      ...(doctorSel.idNumerico ? { idMedico: doctorSel.idNumerico } : {}),
+      ...(sede.id ? { idSede: sede.id } : {}),
+      ...(especialidad.id ? { idEspecialidad: especialidad.id } : {}),
     });
-    onGuardar(nueva);
+    setGuardando(false);
+    if (!r.ok || !r.datos) {
+      toast.error(r.error ?? "No se pudo agendar la cita.");
+      return;
+    }
+    onGuardar(r.datos);
   }
 
   const puedeAvanzar =
@@ -301,9 +330,9 @@ function Asistente_Reserva({
 
       {paso === 1 && (
         <Opciones
-          items={SEDES.map((s) => ({ id: s, label: s }))}
-          seleccionado={sede}
-          onElegir={(v) => setSede(v as Sede)}
+          items={sedes.map((s) => ({ id: s.nombre, label: s.nombre }))}
+          seleccionado={sede?.nombre ?? ""}
+          onElegir={(v) => setSede(sedes.find((s) => s.nombre === v) ?? null)}
         />
       )}
       {paso === 2 &&
@@ -311,15 +340,17 @@ function Asistente_Reserva({
           <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
             <Info className="mt-0.5 size-5 shrink-0 text-primary" />
             <p>
-              La sede <b>{sede}</b> no tiene especialidades con cupos disponibles
+              La sede <b>{sede?.nombre}</b> no tiene especialidades con cupos disponibles
               en este momento. Vuelve al paso anterior y elige otra sede.
             </p>
           </div>
         ) : (
           <Opciones
-            items={especialidades.map((s) => ({ id: s, label: s }))}
-            seleccionado={especialidad}
-            onElegir={setEspecialidad}
+            items={especialidades.map((e) => ({ id: e.nombre, label: e.nombre }))}
+            seleccionado={especialidad?.nombre ?? ""}
+            onElegir={(v) =>
+              setEspecialidad(especialidades.find((e) => e.nombre === v) ?? null)
+            }
           />
         ))}
       {paso === 3 &&
@@ -327,7 +358,8 @@ function Asistente_Reserva({
           <div className="flex items-start gap-3 rounded-xl border border-dashed border-border bg-secondary/50 p-4 text-sm text-muted-foreground">
             <Info className="mt-0.5 size-5 shrink-0 text-primary" />
             <p>
-              No hay médicos de {especialidad} con cupos disponibles en {sede}.
+              No hay médicos de {especialidad?.nombre} con cupos disponibles en{" "}
+              {sede?.nombre}.
               Vuelve y elige otra combinación.
             </p>
           </div>
@@ -357,8 +389,8 @@ function Asistente_Reserva({
                 Resumen de la cita
               </p>
               <ul className="space-y-1 text-muted-foreground">
-                <li><b>Sede:</b> {sede}</li>
-                <li><b>Especialidad:</b> {especialidad}</li>
+                <li><b>Sede:</b> {sede?.nombre}</li>
+                <li><b>Especialidad:</b> {especialidad?.nombre}</li>
                 <li><b>Doctor:</b> {doctorSel?.nombre}</li>
                 <li><b>Fecha:</b> {formatearFechaLarga(fecha)}</li>
                 <li><b>Hora:</b> {hora}</li>
@@ -385,8 +417,8 @@ function Asistente_Reserva({
             Siguiente <ChevronRight className="size-4" />
           </Button>
         ) : (
-          <Button onClick={confirmar} disabled={!hora}>
-            Confirmar cita
+          <Button onClick={() => void confirmar()} disabled={!hora || guardando}>
+            {guardando ? "Agendando…" : "Confirmar cita"}
           </Button>
         )}
       </div>

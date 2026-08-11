@@ -5,7 +5,6 @@ import { Cascara_App } from "@/components/Cascara_App";
 import { Insignia_Estado, Insignia_Urgente } from "@/components/Insignia_Estado";
 import { Detalle_Cita } from "@/components/Detalle_Cita";
 import {
-  citasDePaciente,
   fechaCorta,
   ESTADOS_CITA,
   type Cita,
@@ -13,6 +12,9 @@ import {
 } from "@/servicios/servicio_citas";
 import { descargarComprobantePDF } from "@/servicios/servicio_exportacion";
 import { obtenerSesion } from "@/servicios/servicio_sesion";
+// ===== SOLID - DIP =====
+// Historial lee por la fachada (API MySQL en Vercel, local en vista previa).
+import { actorActual, citasDelPaciente } from "@/servicios/fachada_datos";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/historial_citas")({
@@ -41,8 +43,10 @@ function Pagina_Historial_Citas() {
   const [citas, setCitas] = useState<Cita[]>([]);
   const [seleccion, setSeleccion] = useState<Cita | null>(null);
 
-  function recargar(correo: string) {
-    setCitas(citasDePaciente(correo));
+  async function recargar() {
+    const actor = actorActual();
+    if (!actor) return;
+    setCitas(await citasDelPaciente(actor));
   }
 
   useEffect(() => {
@@ -51,7 +55,7 @@ function Pagina_Historial_Citas() {
       navigate({ to: "/inicio_sesion" });
       return;
     }
-    recargar(sesion.correo);
+    void recargar();
   }, [navigate]);
 
   const resultados = useMemo(() => {
@@ -185,10 +189,7 @@ function Pagina_Historial_Citas() {
           abierto={!!seleccion}
           modo="historial"
           onCerrar={() => setSeleccion(null)}
-          onCambio={() => {
-            const s = obtenerSesion();
-            if (s) recargar(s.correo);
-          }}
+          onCambio={() => void recargar()}
         />
       )}
 
