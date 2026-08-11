@@ -2,7 +2,7 @@
 // Este componente solo resuelve la selección de fecha y hora.
 // SOLID - DIP
 // Depende del servicio de agenda, no del almacenamiento de datos.
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarOff, Info } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fechasDeMedico, horariosDeMedico } from "@/servicios/servicio_agenda";
+import { fechasLibres, horasLibres } from "@/servicios/fachada_datos";
 import { formatearFechaLarga } from "@/servicios/servicio_citas";
 import { fechaLocalISO } from "@/servicios/servicio_agenda";
 
@@ -33,14 +33,34 @@ export function Selector_Fecha_Hora({
   onHora,
   dias = 30,
 }: Props) {
-  const fechas = useMemo(
-    () => (doctorId ? fechasDeMedico(doctorId, dias) : []),
-    [doctorId, dias],
-  );
-  const horarios = useMemo(
-    () => (doctorId && fecha ? horariosDeMedico(doctorId, fecha) : []),
-    [doctorId, fecha],
-  );
+  // ===== SOLID - DIP =====
+  // La disponibilidad se pide a la fachada (MySQL o local) de forma asíncrona.
+  const [fechas, setFechas] = useState<string[]>([]);
+  const [horarios, setHorarios] = useState<string[]>([]);
+
+  useEffect(() => {
+    let activo = true;
+    if (!doctorId) {
+      setFechas([]);
+      return;
+    }
+    fechasLibres(doctorId).then((f) => activo && setFechas(f.slice(0, dias)));
+    return () => {
+      activo = false;
+    };
+  }, [doctorId, dias]);
+
+  useEffect(() => {
+    let activo = true;
+    if (!doctorId || !fecha) {
+      setHorarios([]);
+      return;
+    }
+    horasLibres(doctorId, fecha).then((h) => activo && setHorarios(h));
+    return () => {
+      activo = false;
+    };
+  }, [doctorId, fecha]);
 
   const fechasSet = useMemo(() => new Set(fechas), [fechas]);
   const seleccionada = fecha ? new Date(`${fecha}T00:00:00`) : undefined;
