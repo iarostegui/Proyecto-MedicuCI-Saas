@@ -24,10 +24,16 @@ import {
   type DatosNuevaCita,
   type ResultadoOperacion,
 } from "@/servicios/servicio_citas";
-import { fechasDeMedico, horariosDeMedico } from "@/servicios/servicio_agenda";
+import {
+  fechasDeMedico,
+  horariosDeMedico,
+  especialidadesDeSede,
+  medicosDeEspecialidad,
+} from "@/servicios/servicio_agenda";
+import { SEDES, type Sede } from "@/datos/sedes";
 import type { Cita, EstadoCita } from "@/modelos";
 import type { ActorAutenticado } from "@/seguridad/autorizacion";
-import { establecerSesion, type SesionActiva } from "@/servicios/servicio_sesion";
+import { establecerSesion, obtenerSesion, type SesionActiva } from "@/servicios/servicio_sesion";
 
 // ---------------------------------------------------------------- mapeos API
 interface FilaCitaApi {
@@ -249,4 +255,94 @@ export async function horasLibres(doctorId: string, fecha: string): Promise<stri
     }
   }
   return horariosDeMedico(doctorId, fecha);
+}
+
+// -------------------------------------------------------- sesión / actor
+// ===== SOLID - SRP =====
+// Traduce la sesión activa al actor que exigen los servicios de dominio.
+export function actorActual(): ActorAutenticado | null {
+  const s = obtenerSesion();
+  if (!s) return null;
+  return { correo: s.correo, rol: s.rol, ...(s.medicoId ? { medicoId: s.medicoId } : {}) };
+}
+
+// ------------------------------------------------------------- catálogos
+interface FilaSedeApi { id_sede: number; nombre: string }
+interface FilaEspecialidadApi { id_especialidad: number; nombre: string }
+interface FilaMedicoApi {
+  id_medico: number;
+  nombres: string;
+  apellidos?: string | null;
+  id_especialidad: number;
+  especialidad: string;
+  id_sede: number;
+  sede: string;
+}
+
+export interface OpcionSede { id?: number; nombre: string }
+export interface OpcionEspecialidad { id?: number; nombre: string }
+export interface OpcionMedico {
+  id: string;
+  idNumerico?: number;
+  nombre: string;
+  especialidad: string;
+  idEspecialidad?: number;
+  sede: string;
+  idSede?: number;
+}
+
+export async function sedesDatos(): Promise<OpcionSede[]> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<FilaSedeApi[]>("/sedes");
+      return filas.map((f) => ({ id: f.id_sede, nombre: f.nombre }));
+    } catch {
+      /* respaldo local */
+    }
+  }
+  return SEDES.map((s) => ({ nombre: s }));
+}
+
+export async function especialidadesDeSedeDatos(
+  sede: OpcionSede,
+): Promise<OpcionEspecialidad[]> {
+  if ((await usandoApi()) && sede.id) {
+    try {
+      const filas = await api.get<FilaEspecialidadApi[]>(`/especialidades?idSede=${sede.id}`);
+      return filas.map((f) => ({ id: f.id_especialidad, nombre: f.nombre }));
+    } catch {
+      /* respaldo local */
+    }
+  }
+  return especialidadesDeSede(sede.nombre as Sede).map((n) => ({ nombre: n }));
+}
+
+export async function medicosDatos(
+  sede: OpcionSede,
+  especialidad: OpcionEspecialidad,
+): Promise<OpcionMedico[]> {
+  if ((await usandoApi()) && sede.id && especialidad.id) {
+    try {
+      const filas = await api.get<FilaMedicoApi[]>(
+        `/medicos?idSede=${sede.id}&idEspecialidad=${especialidad.id}`,
+      );
+      return filas.map((f) => ({
+        id: String(f.id_medico),
+        idNumerico: f.id_medico,
+        nombre: `${f.nombres} ${f.apellidos ?? ""}`.trim(),
+        especialidad: f.especialidad,
+        idEspecialidad: f.id_especialidad,
+        sede: f.sede,
+        idSede: f.id_sede,
+      }));
+    } catch {
+      /* respaldo local */
+    }
+  }
+  return medicosDeEspecialidad(especialidad.nombre, sede.nombre as Sede).map((m) => ({
+    id: m.id,
+    nombre: m.nombre,
+    especialidad: m.especialidad,
+    sede: m.sede,
+  }));
 }
