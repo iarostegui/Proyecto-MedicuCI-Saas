@@ -170,3 +170,40 @@ y cabeceras de seguridad (`no-store`, `nosniff`, `no-referrer`) para `/api/*`.
 `actorActual()`, `sedesDatos()`, `especialidadesDeSedeDatos()`, `medicosDatos()`.
 Todas caen automáticamente al almacén local si `/api/salud` no responde, por lo
 que la vista previa sigue funcionando sin MySQL.
+
+## 10. Pasos 8, 9, 10 y 11
+
+**Paso 8 — Notificaciones**: `GET /api/notificaciones`, `PATCH /api/notificaciones/todas`.
+`Campana_Notificaciones` ahora usa `notificacionesDatos()` / `marcarNotificacionesLeidas()`
+de la fachada; con MySQL lee la tabla `notificacion`, sin API deriva los avisos localmente.
+
+**Paso 9 — Disponibilidad**: nuevo `POST /api/disponibilidad/generar` que materializa la
+plantilla semanal del médico (días, rango horario, duración, fechas bloqueadas) en franjas
+de la tabla `disponibilidad`, sin tocar las ya `Reservado`. La pantalla
+`disponibilidad_medico` guarda con `guardarAgendaDatos()`.
+
+**Paso 10 — Administración y reportes**: `api/servicios/administracion.ts` expone
+`GET/POST /api/admin/medicos`, `PATCH|DELETE /api/admin/medicos/:id`,
+`GET /api/admin/pacientes`, `POST /api/admin/sedes`, `POST /api/admin/especialidades`
+y `GET /api/reportes?desde=&hasta=&idSede=` (agregaciones con GROUP BY en el motor).
+`panel_admin` y `reportes` consumen la fachada (`medicosAdminDatos`, `guardarMedicoAdmin`,
+`eliminarMedicoAdmin`, `pacientesRegistrados`, `reporteDatos`). La baja de médicos es
+lógica (`estado = 'Inactivo'`) para no romper el historial de citas.
+
+**Paso 11 — Diagnóstico**: `GET /api/salud?db=1` devuelve versión de MySQL, número de
+tablas y latencia; en el frontend, `diagnosticoConexion()` indica si se está usando
+`api` o `local`.
+
+**Esquema completado**: `database/esquema_medicu_ci.sql` incluye ahora las vistas
+`v_cita_detalle`, `v_agenda_libre`, `v_reporte_citas`, el procedimiento
+`sp_conciliar_estados()` y el evento horario `ev_conciliar_estados`.
+
+### ¿Listos para conectar a MySQL?
+Sí, el código está completo. Sólo falta lo que depende de usted:
+1. Ejecutar en Aiven `esquema_medicu_ci.sql` y luego `semillas_medicu_ci.sql`.
+2. Crear en Vercel: `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+   (o `DATABASE_URL`), `DB_SSL_CA` y `JWT_SECRET` (Production y Preview).
+3. Permitir el acceso de red (`0.0.0.0/0`) en Aiven y desplegar.
+4. Verificar `https://<dominio>/api/salud?db=1`.
+Recuerde: la vista previa de Lovable corre en Cloudflare Workers y no admite TCP a MySQL,
+por eso allí seguirá funcionando en modo local.
