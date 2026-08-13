@@ -4,11 +4,11 @@ import { Cascara_App } from "@/components/Cascara_App";
 import { Button } from "@/components/ui/button";
 import {
   obtenerDisponibilidad,
-  guardarDisponibilidad,
   DIAS_SEMANA_ETIQUETAS,
   type Disponibilidad,
 } from "@/servicios/servicio_agenda";
 import { obtenerSesion, buscarMedicoPorCorreo } from "@/servicios/servicio_sesion";
+import { guardarAgendaDatos } from "@/servicios/fachada_datos";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { CalendarClock, Plus, X } from "lucide-react";
@@ -70,7 +70,7 @@ function Pagina_Disponibilidad() {
     });
   }
 
-  function guardar() {
+  async function guardar() {
     if (!disp) return;
     if (disp.diasSemana.length === 0) {
       toast.error("Selecciona al menos un día de atención.");
@@ -84,8 +84,14 @@ function Pagina_Disponibilidad() {
       toast.error("La duración debe estar entre 10 y 120 minutos.");
       return;
     }
-    guardarDisponibilidad(disp);
-    toast.success("Disponibilidad guardada");
+    const r = await guardarAgendaDatos(disp);
+    if (!r.ok) {
+      toast.error(r.error ?? "No se pudo guardar la disponibilidad.");
+      return;
+    }
+    toast.success(
+      r.datos ? `Agenda publicada (${r.datos.franjas} horarios)` : "Disponibilidad guardada",
+    );
   }
 
   return (
@@ -204,7 +210,7 @@ function Pagina_Disponibilidad() {
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={guardar}>Guardar disponibilidad</Button>
+          <Button onClick={() => void guardar()}>Guardar disponibilidad</Button>
         </div>
       </div>
     </Cascara_App>

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BarChart3, TrendingUp, AlertOctagon } from "lucide-react";
 import { Cascara_App } from "@/components/Cascara_App";
-import { generarReporte, type Conteo, type ResumenReportes } from "@/servicios/servicio_reportes";
+import type { Conteo, ResumenReportes } from "@/servicios/servicio_reportes";
+import { reporteDatos } from "@/servicios/fachada_datos";
 import { SEDES } from "@/datos/sedes";
 import { obtenerSesion } from "@/servicios/servicio_sesion";
 
@@ -36,7 +37,11 @@ function Pagina_Reportes() {
   }, [navigate]);
 
   useEffect(() => {
-    setDatos(generarReporte({ desde: desde || undefined, hasta: hasta || undefined, sede: sede || undefined }));
+    void reporteDatos({
+      desde: desde || undefined,
+      hasta: hasta || undefined,
+      sede: sede || undefined,
+    }).then(setDatos);
   }, [desde, hasta, sede]);
 
   if (!datos) return null;
