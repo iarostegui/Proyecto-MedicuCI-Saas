@@ -3,15 +3,15 @@
 // Sólo rutea: la lógica vive en api/servicios/*. Se amplía agregando casos,
 // sin modificar los servicios existentes.
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cuerpo, json, manejar, segmentos } from "./_lib/http";
-import { ErrorHttp, exigirSesion } from "./_lib/seguridad";
-import * as usuarios from "./servicios/usuarios";
-import * as catalogos from "./servicios/catalogos";
-import * as disponibilidad from "./servicios/disponibilidad";
-import * as citas from "./servicios/citas";
-import * as notificaciones from "./servicios/notificaciones";
-import * as historial from "./servicios/historial";
-import * as administracion from "./servicios/administracion";
+import { cuerpo, json, manejar, segmentos } from "./_lib/http.js";
+import { ErrorHttp, exigirSesion } from "./_lib/seguridad.js";
+import * as usuarios from "./servicios/usuarios.js";
+import * as catalogos from "./servicios/catalogos.js";
+import * as disponibilidad from "./servicios/disponibilidad.js";
+import * as citas from "./servicios/citas.js";
+import * as notificaciones from "./servicios/notificaciones.js";
+import * as historial from "./servicios/historial.js";
+import * as administracion from "./servicios/administracion.js";
 
 function q(req: VercelRequest, nombre: string): string | undefined {
   const valor = req.query[nombre];
