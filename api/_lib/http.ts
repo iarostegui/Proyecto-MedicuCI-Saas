@@ -1,7 +1,7 @@
 // ===== SOLID - SRP =====
 // Única responsabilidad: utilidades HTTP (respuestas, errores, ruteo).
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ErrorHttp } from "./seguridad";
+import { ErrorHttp } from "./seguridad.js";
 
 export function json(res: VercelResponse, codigo: number, cuerpo: unknown): void {
   res.status(codigo).json(cuerpo);
