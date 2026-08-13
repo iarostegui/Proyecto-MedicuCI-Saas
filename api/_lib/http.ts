@@ -38,16 +38,19 @@ export function cuerpo<T = Record<string, unknown>>(req: VercelRequest): T {
 }
 
 export function segmentos(req: VercelRequest): string[] {
-  // 1. Si Vercel o un rewrite ya capturó el parámetro "ruta"
+  // 1. Si Vercel pasó el parámetro "ruta" mediante vercel.json
   const rutaParam = req.query["ruta"];
   if (Array.isArray(rutaParam)) return rutaParam;
   if (typeof rutaParam === "string") return rutaParam.split("/").filter(Boolean);
 
-  // 2. Fallback: Parsear directamente la URL limpia
-  const urlSinQuery = (req.url ?? "").split("?")[0]; // "/api/salud"
-  
-  return urlSinQuery
-    .split("/")
-    .filter(Boolean) // Elimina strings vacíos
-    .filter((segmento) => segmento !== "api"); // Remueve el prefijo "/api" -> queda ["salud"]
+  // 2. Fallback: Parsear la URL limpia
+  const urlSinQuery = (req.url ?? "").split("?")[0];
+  const partes = urlSinQuery.split("/").filter(Boolean);
+
+  // Elimina solo el primer 'api' si existe al inicio de la ruta
+  if (partes[0] === "api") {
+    partes.shift();
+  }
+
+  return partes; // Devuelve ["auth", "registro"] limpiamente
 }
