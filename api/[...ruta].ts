@@ -11,6 +11,7 @@ import * as disponibilidad from "./servicios/disponibilidad";
 import * as citas from "./servicios/citas";
 import * as notificaciones from "./servicios/notificaciones";
 import * as historial from "./servicios/historial";
+import * as administracion from "./servicios/administracion";
 
 function q(req: VercelRequest, nombre: string): string | undefined {
   const valor = req.query[nombre];
@@ -24,6 +25,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await manejar(res, async () => {
     switch (recurso) {
       case "salud":
+        // ?db=1 verifica además la conexión real a MySQL (paso 11).
+        if (q(req, "db")) return administracion.diagnostico();
         return { ok: true, servicio: "medicu-ci-api" };
 
       // ---------- AUTENTICACIÓN / PACIENTES ----------
@@ -59,6 +62,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (q(req, "soloFechas")) return disponibilidad.fechasLibres(idMedico);
           return disponibilidad.franjasDeMedico(idMedico, q(req, "desde"), q(req, "hasta"));
         }
+        if (metodo === "POST" && id === "generar")
+          return disponibilidad.generarAgenda(exigirSesion(req, ["Medico"]), cuerpo(req));
         if (metodo === "POST") return disponibilidad.crearFranja(exigirSesion(req, ["Medico"]), cuerpo(req));
         if ((metodo === "PUT" || metodo === "PATCH") && id)
           return disponibilidad.actualizarFranja(exigirSesion(req, ["Medico"]), id, cuerpo(req));
@@ -91,6 +96,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (metodo === "PATCH" && id) return notificaciones.marcarLeida(sesion, id);
         break;
       }
+
+      // ---------- ADMINISTRACIÓN (sólo rol Admin) ----------
+      case "admin": {
+        const sesion = exigirSesion(req, ["Admin"]);
+        if (id === "medicos") {
+          if (metodo === "GET") return administracion.listarMedicosAdmin();
+          if (metodo === "POST") return administracion.crearMedico(sesion, cuerpo(req));
+          if ((metodo === "PUT" || metodo === "PATCH") && sub)
+            return administracion.actualizarMedico(sesion, sub, cuerpo(req));
+          if (metodo === "DELETE" && sub) return administracion.desactivarMedico(sesion, sub);
+        }
+        if (id === "pacientes" && metodo === "GET") return administracion.listarPacientes();
+        if (id === "sedes" && metodo === "POST") return administracion.crearSede(sesion, cuerpo(req));
+        if (id === "especialidades" && metodo === "POST")
+          return administracion.crearEspecialidad(sesion, cuerpo(req));
+        break;
+      }
+
+      // ---------- REPORTES ----------
+      case "reportes":
+        if (metodo === "GET") {
+          exigirSesion(req, ["Admin", "Medico"]);
+          return administracion.resumenReportes({
+            desde: q(req, "desde"),
+            hasta: q(req, "hasta"),
+            idSede: q(req, "idSede"),
+          });
+        }
+        break;
 
       // ---------- AUDITORÍA ----------
       case "auditoria":
