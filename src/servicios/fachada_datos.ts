@@ -84,11 +84,11 @@ export async function iniciarSesion(
   if (await usandoApi()) {
     try {
       const r = await api.post<{ token: string; sesion: { correo: string; rol: SesionActiva["rol"]; idMedico?: number } }>(
-        "/auth/login",
+        "auth/login",
         { correo, contrasena },
       );
       guardarToken(r.token);
-      const perfil = (await api.get<Record<string, unknown>>("/auth/perfil")) ?? {};
+      const perfil = (await api.get<Record<string, unknown>>("auth/perfil")) ?? {};
       const nombre = `${String(perfil["nombres"] ?? "")} ${String(perfil["apellidos"] ?? "")}`.trim();
       const sesion: SesionActiva = {
         correo: r.sesion.correo,
@@ -120,7 +120,7 @@ export async function registrarPaciente(datos: DatosRegistro): Promise<Resultado
   if (await usandoApi()) {
     try {
       const r = await api.post<{ token: string; sesion: { correo: string; rol: SesionActiva["rol"] } }>(
-        "/auth/registro",
+        "auth/registro",
         {
           correo: datos.correo,
           contrasena: datos.contrasena,
@@ -150,7 +150,7 @@ export async function cerrarSesion(): Promise<void> {
 export async function citasDelPaciente(actor: ActorAutenticado): Promise<Cita[]> {
   if (await usandoApi()) {
     try {
-      const filas = await api.get<FilaCitaApi[]>("/citas");
+      const filas = await api.get<FilaCitaApi[]>("citas");
       return filas.map((f) => aCita(f, actor.correo));
     } catch {
       return [];
@@ -162,7 +162,7 @@ export async function citasDelPaciente(actor: ActorAutenticado): Promise<Cita[]>
 export async function citasDelMedico(actor: ActorAutenticado): Promise<Cita[]> {
   if (await usandoApi()) {
     try {
-      const filas = await api.get<FilaCitaApi[]>("/citas");
+      const filas = await api.get<FilaCitaApi[]>("citas");
       return filas.map((f) => aCita(f, ""));
     } catch {
       return [];
@@ -178,7 +178,7 @@ export async function crearCitaDatos(
 ): Promise<ResultadoOperacion<Cita>> {
   if (await usandoApi()) {
     try {
-      const fila = await api.post<FilaCitaApi>("/citas", {
+      const fila = await api.post<FilaCitaApi>("citas", {
         idMedico: datos.idMedico ?? Number(datos.doctorId),
         idSede: datos.idSede,
         idEspecialidad: datos.idEspecialidad,
