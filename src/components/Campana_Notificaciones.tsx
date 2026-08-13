@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check } from "lucide-react";
 import { useSesion } from "@/hooks/useSesion";
+import type { Notificacion } from "@/servicios/servicio_notificaciones";
 import {
-  contarNoLeidas,
-  leidasDe,
-  marcarLeidas,
-  notificacionesDe,
-  type Notificacion,
-} from "@/servicios/servicio_notificaciones";
+  marcarNotificacionesLeidas,
+  notificacionesDatos,
+  type NotificacionVista,
+} from "@/servicios/fachada_datos";
 import { cn } from "@/lib/utils";
 
 const ESTILO_TIPO: Record<Notificacion["tipo"], string> = {
@@ -38,21 +37,29 @@ export function Campana_Notificaciones() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [abierto]);
 
-  const items = useMemo<Notificacion[]>(
-    () => (usuario && rol ? notificacionesDe(usuario.correo, rol) : []),
-    [usuario, rol, tick, abierto],
-  );
-  const noLeidas = useMemo(
-    () => (usuario && rol ? contarNoLeidas(usuario.correo, rol) : 0),
-    [usuario, rol, tick, abierto],
-  );
-  const leidas = usuario ? leidasDe(usuario.correo) : new Set<string>();
+  // ===== SOLID - DIP =====
+  // La campana pide los avisos a la fachada (MySQL o local), nunca al almacén.
+  const [items, setItems] = useState<NotificacionVista[]>([]);
+
+  const cargar = useCallback(async () => {
+    if (!usuario || !rol) {
+      setItems([]);
+      return;
+    }
+    setItems(await notificacionesDatos(usuario.correo, rol));
+  }, [usuario, rol]);
+
+  useEffect(() => {
+    void cargar();
+  }, [cargar, tick, abierto]);
+
+  const noLeidas = items.filter((n) => !n.leida).length;
 
   if (!usuario) return null;
 
-  function marcarTodas() {
+  async function marcarTodas() {
     if (!usuario) return;
-    marcarLeidas(
+    await marcarNotificacionesLeidas(
       usuario.correo,
       items.map((n) => n.id),
     );
@@ -80,7 +87,7 @@ export function Campana_Notificaciones() {
             <h3 className="text-sm font-bold">Notificaciones</h3>
             {items.length > 0 && (
               <button
-                onClick={marcarTodas}
+                onClick={() => void marcarTodas()}
                 className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
               >
                 <Check className="size-3.5" /> Marcar leídas
@@ -94,7 +101,7 @@ export function Campana_Notificaciones() {
           ) : (
             <ul className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
               {items.slice(0, 20).map((n) => {
-                const leida = leidas.has(n.id);
+                const leida = n.leida;
                 return (
                   <li
                     key={n.id}

@@ -256,3 +256,67 @@ INSERT IGNORE INTO especialidad (nombre) VALUES
   ('Medicina familiar'), ('Medicina general'), ('Pediatría'),
   ('Salud mental'), ('Traumatología'), ('Adultos mayores'),
   ('Cardiología'), ('Dermatología'), ('Ginecología'), ('Nutrición');
+
+-- ---------------------------------------------------------------------
+-- 7. VISTAS DE APOYO (reportes y agenda) — idempotentes
+-- ---------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW v_cita_detalle AS
+SELECT c.id_cita, c.codigo_cita, c.fecha, c.hora, c.urgente, c.observaciones,
+       c.fecha_registro, e.nombre_estado AS estado,
+       p.id_paciente, p.nombres AS paciente_nombres, p.apellidos AS paciente_apellidos, p.dni,
+       m.id_medico, m.nombres AS medico_nombres, m.apellidos AS medico_apellidos,
+       es.nombre AS especialidad, s.nombre AS sede
+  FROM cita c
+  JOIN estado_cita e   ON e.id_estado = c.id_estado
+  JOIN paciente p      ON p.id_paciente = c.id_paciente
+  JOIN medico m        ON m.id_medico = c.id_medico
+  JOIN especialidad es ON es.id_especialidad = c.id_especialidad
+  JOIN sede s          ON s.id_sede = c.id_sede;
+
+CREATE OR REPLACE VIEW v_agenda_libre AS
+SELECT d.id_disponibilidad, d.id_medico, d.fecha, d.hora_inicio, d.hora_fin
+  FROM disponibilidad d
+ WHERE d.estado = 'Libre'
+   AND (d.fecha > CURDATE() OR (d.fecha = CURDATE() AND d.hora_inicio > CURTIME()))
+   AND NOT EXISTS (
+     SELECT 1 FROM cita c
+      WHERE c.id_medico = d.id_medico AND c.fecha = d.fecha AND c.hora = d.hora_inicio
+        AND c.id_estado IN (SELECT id_estado FROM estado_cita
+                             WHERE nombre_estado IN ('Programada','Reprogramada')));
+
+CREATE OR REPLACE VIEW v_reporte_citas AS
+SELECT s.nombre AS sede, es.nombre AS especialidad, e.nombre_estado AS estado,
+       c.fecha, COUNT(*) AS total, SUM(c.urgente) AS urgentes
+  FROM cita c
+  JOIN sede s          ON s.id_sede = c.id_sede
+  JOIN especialidad es ON es.id_especialidad = c.id_especialidad
+  JOIN estado_cita e   ON e.id_estado = c.id_estado
+ GROUP BY s.nombre, es.nombre, e.nombre_estado, c.fecha;
+
+-- ---------------------------------------------------------------------
+-- 8. CONCILIACIÓN AUTOMÁTICA DE ESTADOS ("No asistió")
+--    Marca como "No asistió" las citas vencidas que siguen vigentes.
+--    La API la ejecuta también en cada consulta; el evento es respaldo.
+-- ---------------------------------------------------------------------
+
+DROP PROCEDURE IF EXISTS sp_conciliar_estados;
+CREATE PROCEDURE sp_conciliar_estados()
+BEGIN
+  UPDATE cita c
+     JOIN estado_cita v ON v.id_estado = c.id_estado
+     SET c.id_estado = (SELECT id_estado FROM estado_cita WHERE nombre_estado = 'No asistió')
+   WHERE v.nombre_estado IN ('Programada','Reprogramada')
+     AND TIMESTAMP(c.fecha, c.hora) < NOW() - INTERVAL 2 HOUR;
+END;
+
+-- Requiere event_scheduler = ON (en Aiven: Service settings -> Advanced).
+DROP EVENT IF EXISTS ev_conciliar_estados;
+CREATE EVENT ev_conciliar_estados
+  ON SCHEDULE EVERY 1 HOUR
+  DO CALL sp_conciliar_estados();
+
+-- ---------------------------------------------------------------------
+-- FIN DEL ESQUEMA — Medicu CI
+-- Ejecute a continuación `database/semillas_medicu_ci.sql`.
+-- ---------------------------------------------------------------------

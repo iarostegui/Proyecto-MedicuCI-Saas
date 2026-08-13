@@ -346,3 +346,289 @@ export async function medicosDatos(
     sede: m.sede,
   }));
 }
+
+// =====================================================================
+// PASO 8 — NOTIFICACIONES
+// ===== SOLID - SRP / DIP =====
+// La campana no sabe si los avisos vienen de MySQL o del almacén local.
+// =====================================================================
+import {
+  contarNoLeidas as contarNoLeidasLocal,
+  leidasDe as leidasDeLocal,
+  marcarLeidas as marcarLeidasLocal,
+  notificacionesDe as notificacionesDeLocal,
+  type Notificacion,
+  type TipoNotificacion,
+} from "@/servicios/servicio_notificaciones";
+import {
+  generarReporte,
+  type ResumenReportes,
+} from "@/servicios/servicio_reportes";
+import {
+  obtenerMedicos,
+  upsertMedico,
+  eliminarMedico as eliminarMedicoLocal,
+  obtenerUsuarios,
+} from "@/servicios/servicio_sesion";
+import {
+  guardarDisponibilidad,
+  obtenerDisponibilidad,
+  type Disponibilidad,
+} from "@/servicios/servicio_agenda";
+import type { MedicoRegistro } from "@/datos/medicos_iniciales";
+import type { RolUsuario } from "@/logica/autenticacion";
+
+interface FilaNotificacionApi {
+  id_notificacion: number;
+  id_cita: number | null;
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  leida: number | boolean;
+  fecha_creacion: string;
+}
+
+const TIPO_API_A_LOCAL: Record<string, TipoNotificacion> = {
+  Recordatorio: "recordatorio",
+  Cancelacion: "cancelada",
+  Reprogramacion: "reprogramada",
+  Sistema: "recordatorio",
+};
+
+export interface NotificacionVista extends Notificacion {
+  leida: boolean;
+}
+
+export async function notificacionesDatos(
+  correo: string,
+  rol: RolUsuario,
+): Promise<NotificacionVista[]> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<FilaNotificacionApi[]>("/notificaciones");
+      return filas.map((f) => ({
+        id: String(f.id_notificacion),
+        tipo: TIPO_API_A_LOCAL[f.tipo] ?? "recordatorio",
+        titulo: f.titulo,
+        detalle: f.mensaje,
+        fechaOrden: f.fecha_creacion,
+        leida: Boolean(f.leida),
+      }));
+    } catch {
+      return [];
+    }
+  }
+  const leidas = leidasDeLocal(correo);
+  return notificacionesDeLocal(correo, rol).map((n) => ({ ...n, leida: leidas.has(n.id) }));
+}
+
+export async function noLeidasDatos(correo: string, rol: RolUsuario): Promise<number> {
+  if (await usandoApi()) {
+    return (await notificacionesDatos(correo, rol)).filter((n) => !n.leida).length;
+  }
+  return contarNoLeidasLocal(correo, rol);
+}
+
+export async function marcarNotificacionesLeidas(correo: string, ids: string[]): Promise<void> {
+  if (await usandoApi()) {
+    try {
+      await api.patch("/notificaciones/todas");
+    } catch {
+      /* silencioso: la campana no debe romper la navegación */
+    }
+    return;
+  }
+  marcarLeidasLocal(correo, ids);
+}
+
+// =====================================================================
+// PASO 9 — DISPONIBILIDAD DEL MÉDICO
+// La plantilla semanal se guarda local y, con API activa, se materializa en
+// franjas reales de la tabla `disponibilidad`.
+// =====================================================================
+export function agendaDelMedico(medicoId: string): Disponibilidad {
+  return obtenerDisponibilidad(medicoId);
+}
+
+export async function guardarAgendaDatos(
+  disponibilidad: Disponibilidad,
+  dias = 30,
+): Promise<ResultadoOperacion<{ franjas: number }>> {
+  guardarDisponibilidad(disponibilidad);
+  if (await usandoApi()) {
+    try {
+      const r = await api.post<{ franjas: number }>("/disponibilidad/generar", {
+        diasSemana: disponibilidad.diasSemana,
+        horaInicio: disponibilidad.horaInicio,
+        horaFin: disponibilidad.horaFin,
+        duracionMin: disponibilidad.duracionMin,
+        fechasBloqueadas: disponibilidad.fechasBloqueadas,
+        dias,
+      });
+      return { ok: true, datos: r };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "No se pudo publicar la agenda.") };
+    }
+  }
+  return { ok: true };
+}
+
+// =====================================================================
+// PASO 10 — ADMINISTRACIÓN Y REPORTES
+// =====================================================================
+interface FilaMedicoAdminApi {
+  id_medico: number;
+  codigo_medico: string;
+  nombres: string;
+  apellidos?: string | null;
+  correo: string;
+  id_especialidad: number;
+  especialidad: string;
+  id_sede: number;
+  sede: string;
+  estado: string;
+}
+
+export interface MedicoAdmin extends MedicoRegistro {
+  idNumerico?: number;
+  idEspecialidad?: number;
+  idSede?: number;
+}
+
+export async function medicosAdminDatos(): Promise<MedicoAdmin[]> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<FilaMedicoAdminApi[]>("/admin/medicos");
+      return filas.map((f) => ({
+        id: f.codigo_medico || String(f.id_medico),
+        idNumerico: f.id_medico,
+        nombre: `${f.nombres} ${f.apellidos ?? ""}`.trim(),
+        correo: f.correo,
+        contrasena: "",
+        especialidad: f.especialidad,
+        idEspecialidad: f.id_especialidad,
+        sede: f.sede,
+        idSede: f.id_sede,
+        rol: "Medico",
+      }));
+    } catch {
+      return [];
+    }
+  }
+  return obtenerMedicos();
+}
+
+export async function pacientesRegistrados(): Promise<number> {
+  if (await usandoApi()) {
+    try {
+      const filas = await api.get<unknown[]>("/admin/pacientes");
+      return filas.length;
+    } catch {
+      return 0;
+    }
+  }
+  return obtenerUsuarios().length;
+}
+
+/** Resuelve el id de sede/especialidad por nombre (la UI trabaja con nombres). */
+async function idsCatalogo(
+  sede: string,
+  especialidad: string,
+): Promise<{ idSede?: number; idEspecialidad?: number }> {
+  const sedes = await sedesDatos();
+  const s = sedes.find((x) => x.nombre === sede);
+  const especialidades = s ? await especialidadesDeSedeDatos(s) : [];
+  const e = especialidades.find((x) => x.nombre === especialidad);
+  return { ...(s?.id ? { idSede: s.id } : {}), ...(e?.id ? { idEspecialidad: e.id } : {}) };
+}
+
+export async function guardarMedicoAdmin(
+  medico: MedicoAdmin,
+  modo: "nuevo" | "editar",
+): Promise<ResultadoOperacion<void>> {
+  if (await usandoApi()) {
+    try {
+      const catalogo = await idsCatalogo(medico.sede, medico.especialidad);
+      const idEspecialidad = medico.idEspecialidad ?? catalogo.idEspecialidad;
+      const idSede = medico.idSede ?? catalogo.idSede;
+      if (!idEspecialidad || !idSede) {
+        return { ok: false, error: "La sede o la especialidad no existen en el catálogo." };
+      }
+      const [nombres, ...resto] = medico.nombre.trim().split(" ");
+      const cuerpo = {
+        correo: medico.correo,
+        contrasena: medico.contrasena,
+        nombres,
+        apellidos: resto.join(" "),
+        codigoMedico: medico.id,
+        idEspecialidad,
+        idSede,
+      };
+      if (modo === "nuevo") await api.post("/admin/medicos", cuerpo);
+      else await api.patch(`/admin/medicos/${medico.idNumerico ?? medico.id}`, cuerpo);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "No se pudo guardar el médico.") };
+    }
+  }
+  upsertMedico({ ...medico, rol: "Medico" });
+  return { ok: true };
+}
+
+export async function eliminarMedicoAdmin(
+  medico: MedicoAdmin,
+): Promise<ResultadoOperacion<void>> {
+  if (await usandoApi()) {
+    try {
+      await api.delete(`/admin/medicos/${medico.idNumerico ?? medico.id}`);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: mensaje(error, "No se pudo dar de baja al médico.") };
+    }
+  }
+  eliminarMedicoLocal(medico.id);
+  return { ok: true };
+}
+
+export async function reporteDatos(filtro: {
+  desde?: string;
+  hasta?: string;
+  sede?: string;
+}): Promise<ResumenReportes> {
+  if (await usandoApi()) {
+    try {
+      const sedes = await sedesDatos();
+      const idSede = filtro.sede ? sedes.find((s) => s.nombre === filtro.sede)?.id : undefined;
+      const parametros = new URLSearchParams();
+      if (filtro.desde) parametros.set("desde", filtro.desde);
+      if (filtro.hasta) parametros.set("hasta", filtro.hasta);
+      if (idSede) parametros.set("idSede", String(idSede));
+      return await api.get<ResumenReportes>(`/reportes?${parametros.toString()}`);
+    } catch {
+      /* respaldo local */
+    }
+  }
+  return generarReporte(filtro);
+}
+
+// =====================================================================
+// PASO 11 — DIAGNÓSTICO DE CONEXIÓN
+// =====================================================================
+export interface Diagnostico {
+  origen: "api" | "local";
+  baseDatos?: string;
+  version?: string;
+  tablas?: number;
+  latenciaMs?: number;
+  error?: string;
+}
+
+export async function diagnosticoConexion(): Promise<Diagnostico> {
+  if (!(await usandoApi())) return { origen: "local" };
+  try {
+    const r = await api.get<Omit<Diagnostico, "origen">>("/salud?db=1");
+    return { origen: "api", ...r };
+  } catch (error) {
+    return { origen: "api", error: mensaje(error, "La API responde pero MySQL no.") };
+  }
+}

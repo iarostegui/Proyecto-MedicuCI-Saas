@@ -20,13 +20,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { obtenerSesion } from "@/servicios/servicio_sesion";
 import {
-  obtenerSesion,
-  obtenerMedicos,
-  obtenerUsuarios,
-  upsertMedico,
-  eliminarMedico,
-} from "@/servicios/servicio_sesion";
+  medicosAdminDatos,
+  pacientesRegistrados,
+  guardarMedicoAdmin,
+  eliminarMedicoAdmin,
+} from "@/servicios/fachada_datos";
 import type { MedicoRegistro } from "@/datos/medicos_iniciales";
 import { SEDES } from "@/datos/sedes";
 import {
@@ -66,9 +66,11 @@ function Pagina_Panel_Admin() {
   const [modal, setModal] = useState<{ modo: "nuevo" | "editar"; data: FormMedico } | null>(null);
   const [confirmarBorrar, setConfirmarBorrar] = useState<MedicoRegistro | null>(null);
 
-  function recargar() {
-    setMedicos(obtenerMedicos());
-    setPacientes(obtenerUsuarios().length);
+  // ===== SOLID - DIP =====
+  // El panel admin consume la fachada: MySQL si la API está activa, local si no.
+  async function recargar() {
+    setMedicos(await medicosAdminDatos());
+    setPacientes(await pacientesRegistrados());
   }
 
   useEffect(() => {
@@ -81,7 +83,7 @@ function Pagina_Panel_Admin() {
       navigate({ to: "/" });
       return;
     }
-    recargar();
+    void recargar();
   }, [navigate]);
 
   const filtrados = useMemo(() => {
@@ -106,7 +108,7 @@ function Pagina_Panel_Admin() {
     setModal({ modo: "editar", data: { ...m } });
   }
 
-  function guardar() {
+  async function guardar() {
     if (!modal) return;
     const d = modal.data;
     if (!d.nombre.trim() || !d.correo.trim() || !d.especialidad.trim() || !d.sede) {
@@ -117,18 +119,26 @@ function Pagina_Panel_Admin() {
       toast.error("Correo inválido.");
       return;
     }
-    upsertMedico({ ...d, rol: "Medico" });
+    const r = await guardarMedicoAdmin({ ...d, rol: "Medico" }, modal.modo);
+    if (!r.ok) {
+      toast.error(r.error ?? "No se pudo guardar.");
+      return;
+    }
     toast.success(modal.modo === "nuevo" ? "Médico creado" : "Médico actualizado");
     setModal(null);
-    recargar();
+    void recargar();
   }
 
-  function borrar() {
+  async function borrar() {
     if (!confirmarBorrar) return;
-    eliminarMedico(confirmarBorrar.id);
-    toast.success("Médico eliminado");
+    const r = await eliminarMedicoAdmin(confirmarBorrar);
+    if (!r.ok) {
+      toast.error(r.error ?? "No se pudo eliminar.");
+      return;
+    }
+    toast.success("Médico dado de baja");
     setConfirmarBorrar(null);
-    recargar();
+    void recargar();
   }
 
   async function restaurar(file: File) {
@@ -139,7 +149,7 @@ function Pagina_Panel_Admin() {
       return;
     }
     toast.success(`Restaurado (${r.claves.length} claves). Recarga para ver los cambios.`);
-    recargar();
+    void recargar();
   }
 
   return (
@@ -291,7 +301,7 @@ function Pagina_Panel_Admin() {
             <Button variant="ghost" onClick={() => setModal(null)}>
               Cancelar
             </Button>
-            <Button onClick={guardar}>Guardar</Button>
+            <Button onClick={() => void guardar()}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -312,7 +322,7 @@ function Pagina_Panel_Admin() {
             <Button variant="ghost" onClick={() => setConfirmarBorrar(null)}>
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={borrar}>
+            <Button variant="destructive" onClick={() => void borrar()}>
               Eliminar
             </Button>
           </DialogFooter>
