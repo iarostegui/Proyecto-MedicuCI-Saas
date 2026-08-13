@@ -1,6 +1,6 @@
 // ===== SOLID - SRP =====
 // Servicio de autenticación y pacientes: registro, login y datos propios.
-import { consultar, ejecutar, enTransaccion } from "../_lib/db";
+import { consultar, ejecutar, enTransaccion } from "../_lib/db.js";
 import {
   ErrorHttp,
   firmarToken,

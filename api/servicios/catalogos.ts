@@ -1,7 +1,7 @@
 // ===== SOLID - SRP / ISP =====
 // Catálogos de sólo lectura: sedes, especialidades y médicos.
-import { consultar } from "../_lib/db";
-import { sanitizar } from "../_lib/seguridad";
+import { consultar } from "../_lib/db.js";
+import { sanitizar } from "../_lib/seguridad.js";
 
 export function listarSedes() {
   return consultar("SELECT id_sede, nombre, direccion FROM sede WHERE estado = 'Activo' ORDER BY nombre");

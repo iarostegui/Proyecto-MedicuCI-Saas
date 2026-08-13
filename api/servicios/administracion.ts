@@ -2,8 +2,8 @@
 // Única responsabilidad: operaciones exclusivas del rol Admin
 // (gestión de médicos, sedes, especialidades, pacientes) y reportes agregados.
 // Todas las consultas son parametrizadas (OWASP A1) y exigen rol Admin (A5).
-import { consultar, ejecutar } from "../_lib/db";
-import { ErrorHttp, auditar, hashearContrasena, sanitizar, type Sesion } from "../_lib/seguridad";
+import { consultar, ejecutar } from "../_lib/db.js";
+import { ErrorHttp, auditar, hashearContrasena, sanitizar, type Sesion } from "../_lib/seguridad.js";
 
 // ------------------------------------------------------------------ médicos
 export function listarMedicosAdmin() {

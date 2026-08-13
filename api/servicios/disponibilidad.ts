@@ -1,8 +1,8 @@
 // ===== SOLID - SRP =====
 // Disponibilidad del médico: CRUD y consulta de horarios libres.
 // El médico sólo puede tocar SU propia agenda (OWASP A5).
-import { consultar, ejecutar } from "../_lib/db";
-import { ErrorHttp, auditar, type Sesion } from "../_lib/seguridad";
+import { consultar, ejecutar } from "../_lib/db.js";
+import { ErrorHttp, auditar, type Sesion } from "../_lib/seguridad.js";
 
 export function franjasDeMedico(idMedico: string, desde?: string, hasta?: string) {
   return consultar(

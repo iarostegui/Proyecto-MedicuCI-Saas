@@ -1,7 +1,7 @@
 // ===== SOLID - SRP =====
 // Historial de la cita (trazabilidad), notas clínicas y consulta de auditoría.
-import { consultar, ejecutar } from "../_lib/db";
-import { ErrorHttp, sanitizar, type Sesion } from "../_lib/seguridad";
+import { consultar, ejecutar } from "../_lib/db.js";
+import { ErrorHttp, sanitizar, type Sesion } from "../_lib/seguridad.js";
 
 export async function historialDeCita(sesion: Sesion, idCita: string) {
   const [cita] = await consultar<{ id_paciente: number; id_medico: number }>(

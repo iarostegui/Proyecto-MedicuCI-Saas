@@ -1,7 +1,7 @@
 // ===== SOLID - SRP =====
 // Notificaciones del usuario autenticado (listar, crear, marcar leídas).
-import { consultar, ejecutar } from "../_lib/db";
-import { ErrorHttp, sanitizar, type Sesion } from "../_lib/seguridad";
+import { consultar, ejecutar } from "../_lib/db.js";
+import { ErrorHttp, sanitizar, type Sesion } from "../_lib/seguridad.js";
 
 export async function crearNotificacion(
   idUsuario: number,

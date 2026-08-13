@@ -1,9 +1,9 @@
 // ===== SOLID - SRP =====
 // Citas: creación con validación de disponibilidad en transacción, consulta
 // filtrada por propiedad del recurso, cancelación, reprogramación y estados.
-import { consultar, ejecutar, enTransaccion } from "../_lib/db";
-import { ErrorHttp, auditar, sanitizar, type Sesion } from "../_lib/seguridad";
-import { crearNotificacion } from "./notificaciones";
+import { consultar, ejecutar, enTransaccion } from "../_lib/db.js";
+import { ErrorHttp, auditar, sanitizar, type Sesion } from "../_lib/seguridad.js";
+import { crearNotificacion } from "./notificaciones.js";
 
 const SELECT_CITA = `
   SELECT c.id_cita, c.codigo_cita, c.fecha, c.hora, c.motivo, c.observaciones, c.urgente,
