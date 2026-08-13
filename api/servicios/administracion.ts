@@ -13,7 +13,7 @@ export function listarMedicosAdmin() {
             e.id_especialidad, e.nombre AS especialidad,
             s.id_sede, s.nombre AS sede
        FROM medico m
-       JOIN usuario u      ON u.id_usuario = m.id_usuario
+       JOIN usuario u       ON u.id_usuario = m.id_usuario
        JOIN especialidad e ON e.id_especialidad = m.id_especialidad
        JOIN sede s         ON s.id_sede = m.id_sede
       ORDER BY m.nombres`,
@@ -54,9 +54,12 @@ export async function crearMedico(sesion: Sesion, datos: DatosMedico) {
   );
   if (existe.length) throw new ErrorHttp(409, "Ya existe una cuenta con ese correo");
 
+  // Resolver la promesa del hash antes de la consulta
+  const hash = await hashearContrasena(contrasena);
+
   const usuario = await ejecutar(
     "INSERT INTO usuario (correo, contrasena, rol, estado) VALUES (?, ?, 'Medico', 'Activo')",
-    [correo, hashearContrasena(contrasena)],
+    [correo, hash],
   );
   const medico = await ejecutar(
     `INSERT INTO medico (id_usuario, codigo_medico, nombres, apellidos, id_especialidad, id_sede, colegiatura)
@@ -104,8 +107,9 @@ export async function actualizarMedico(sesion: Sesion, id: string, datos: DatosM
   const contrasena = String(datos.contrasena ?? "");
   if (contrasena) {
     if (contrasena.length < 8) throw new ErrorHttp(400, "Contraseña demasiado corta");
+    const hash = await hashearContrasena(contrasena);
     await ejecutar("UPDATE usuario SET contrasena = ? WHERE id_usuario = ?", [
-      hashearContrasena(contrasena),
+      hash,
       filas[0]!.id_usuario,
     ]);
   }
@@ -240,13 +244,17 @@ export async function resumenReportes(filtro: FiltroReporte) {
 }
 
 // -------------------------------------------------------------- diagnóstico
-/** Paso 11 — verificación de conexión real a MySQL (sin exponer credenciales). */
+/** Verificación de conexión real a MySQL apuntando a la BD de Aiven */
 export async function diagnostico() {
   const inicio = Date.now();
+  const dbNombre = process.env.DB_NAME || "medicu-ci-bd";
+
   const tablas = await consultar<{ total: number }>(
-    "SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = DATABASE()",
+    "SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = ?",
+    [dbNombre],
   );
   const [version] = await consultar<{ version: string }>("SELECT VERSION() AS version");
+  
   return {
     ok: true,
     baseDatos: "conectada",
