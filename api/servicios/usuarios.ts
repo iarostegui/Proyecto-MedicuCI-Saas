@@ -9,7 +9,7 @@ import {
   verificarContrasena,
   auditar,
   type Sesion,
-} from "../_lib/seguridad";
+} from "../_lib/seguridad.js";
 
 const DOMINIO_INSTITUCIONAL = "@medicu.ci.com";
 
@@ -62,7 +62,7 @@ export async function registrarPaciente(datos: Record<string, unknown>) {
 
     const [ins] = await cx.execute(
       "INSERT INTO usuario (correo, contrasena, rol) VALUES (?, ?, 'Paciente')",
-      [correo, hashearContrasena(contrasena)],
+      [correo, await hashearContrasena(contrasena)]
     );
     const id = (ins as { insertId: number }).insertId;
     await cx.execute(

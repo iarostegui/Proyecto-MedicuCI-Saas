@@ -142,11 +142,11 @@ export async function crearCita(sesion: Sesion, datos: Record<string, unknown>) 
 
     const [ins] = await cx.execute(
       `INSERT INTO cita (codigo_cita, id_paciente, id_medico, id_especialidad, id_sede,
-                         id_estado, fecha, hora, motivo, urgente)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        id_estado, fecha, hora, motivo, urgente)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         codigo,
-        sesion.idPaciente,
+        sesion.idPaciente!, // <-- Con el '!' le confirmas a TS que no es undefined
         idMedico,
         idEspecialidad,
         idSede,
