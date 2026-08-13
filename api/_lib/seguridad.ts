@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { VercelRequest } from "@vercel/node";
-import { ejecutar } from "./db";
+import { ejecutar } from "./db.js";
 
 export type Rol = "Paciente" | "Medico" | "Admin";
 
