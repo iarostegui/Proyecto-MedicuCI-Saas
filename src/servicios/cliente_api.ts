@@ -33,9 +33,15 @@ async function pedir<T>(
   ruta: string,
   datos?: unknown,
 ): Promise<T> {
+  // 1. Limpia cualquier barra al inicio de la ruta para evitar dobles barras //
   const rutaLimpia = ruta.startsWith("/") ? ruta.slice(1) : ruta;
   const token = obtenerToken();
-  const respuesta = await fetch(`${VARIABLES_ENTORNO.urlApi || ""}/api${rutaLimpia}`, {
+
+  // 2. Agrega la barra '/' entre /api y la ruta limpia -> /api/auth/registro
+  const urlBase = VARIABLES_ENTORNO.urlApi || "";
+  const urlFinal = `${urlBase}/api/${rutaLimpia}`;
+
+  const respuesta = await fetch(urlFinal, {
     method: metodo,
     headers: {
       "Content-Type": "application/json",
@@ -43,6 +49,7 @@ async function pedir<T>(
     },
     body: datos ? JSON.stringify(datos) : undefined,
   });
+
   const cuerpo = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) {
     throw new ErrorApi(respuesta.status, (cuerpo as { error?: string }).error ?? "Error de red");
