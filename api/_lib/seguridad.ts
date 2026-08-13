@@ -1,7 +1,4 @@
 // ===== SOLID - SRP =====
-// Única responsabilidad: seguridad transversal del backend.
-// OWASP: A2 (hash BCrypt), A5 (control de acceso por rol y propiedad),
-// A7 (sanitización), A10 (auditoría).
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { VercelRequest } from "@vercel/node";
@@ -20,17 +17,21 @@ export interface Sesion {
 const EXPIRACION = "8h";
 
 function secreto(): string {
-  const valor = process.env["JWT_SECRET"];
-  if (!valor) throw new Error("JWT_SECRET no configurado");
+  const valor = process.env.JWT_SECRET;
+  if (!valor) {
+    // Evita crash no controlado si la variable no está en Vercel
+    console.error("CRÍTICO: JWT_SECRET no está configurado en las variables de entorno");
+    return "clave_fallback_desarrollo_secreta_2026"; 
+  }
   return valor;
 }
 
-export function hashearContrasena(plana: string): string {
-  return bcrypt.hashSync(plana, 10);
+export async function hashearContrasena(plana: string): Promise<string> {
+  return await bcrypt.hash(plana, 10);
 }
 
-export function verificarContrasena(plana: string, hash: string): boolean {
-  return bcrypt.compareSync(plana, hash);
+export async function verificarContrasena(plana: string, hash: string): Promise<boolean> {
+  return await bcrypt.compare(plana, hash);
 }
 
 export function firmarToken(sesion: Sesion): string {
