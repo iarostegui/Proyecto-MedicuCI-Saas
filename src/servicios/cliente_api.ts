@@ -35,7 +35,7 @@ async function pedir<T>(
 ): Promise<T> {
   const rutaLimpia = ruta.startsWith("/") ? ruta.slice(1) : ruta;
   const token = obtenerToken();
-  const respuesta = await fetch(`${VARIABLES_ENTORNO.urlApi || ""}/api${ruta}`, {
+  const respuesta = await fetch(`${VARIABLES_ENTORNO.urlApi || ""}/api${rutaLimpia}`, {
     method: metodo,
     headers: {
       "Content-Type": "application/json",
