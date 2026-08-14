@@ -1,3 +1,4 @@
+import faviconUrl from "../assets/logo-clinica.png?url";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -94,6 +95,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary" },
     ],
     links: [
+      {
+        rel: "icon",
+        type: "image/png", // O "image/svg+xml" si es un archivo .svg
+        href: faviconUrl,
+      },
       {
         rel: "stylesheet",
         href: appCss,
