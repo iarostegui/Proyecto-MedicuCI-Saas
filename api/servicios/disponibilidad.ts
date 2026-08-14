@@ -115,19 +115,25 @@ export async function generarAgenda(sesion: Sesion, datos: Record<string, unknow
   const texto = (m: number) =>
     `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}:00`;
 
-  const filas: unknown[][] = [];
+  const filas: [number, string, string, string][] = [];
+  
+  // 💡 Construcción de fecha local sin riesgo de desfase ISO/UTC
   const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
   for (let i = 0; i < dias; i++) {
-    const d = new Date(hoy.getTime() + i * 86400000);
-    const iso = d.toISOString().slice(0, 10);
+    const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + i);
+    const anio = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    const iso = `${anio}-${mes}-${dia}`;
+
     if (!diasSemana.includes(d.getDay()) || bloqueadas.has(iso)) continue;
+
     for (let m = minutos(horaInicio); m + duracion <= minutos(horaFin); m += duracion) {
       filas.push([idMedico, iso, texto(m), texto(m + duracion)]);
     }
   }
 
-  // Limpia sólo lo que aún no está reservado dentro del rango generado.
+  // Limpia sólo lo que no está reservado en el rango de días generado
   await ejecutar(
     `DELETE FROM disponibilidad
       WHERE id_medico = ? AND fecha >= CURDATE()
@@ -135,12 +141,13 @@ export async function generarAgenda(sesion: Sesion, datos: Record<string, unknow
     [idMedico, dias],
   );
 
-  for (const fila of filas) {
+  // Inserción limpia respetando la llave primaria
+  for (const [mId, f, hIni, hFin] of filas) {
     await ejecutar(
       `INSERT INTO disponibilidad (id_medico, fecha, hora_inicio, hora_fin, estado)
        VALUES (?, ?, ?, ?, 'Libre')
-       ON DUPLICATE KEY UPDATE hora_fin = VALUES(hora_fin)`,
-      fila,
+       ON DUPLICATE KEY UPDATE hora_fin = ?, estado = 'Libre'`,
+      [mId, f, hIni, hFin, hFin],
     );
   }
 
