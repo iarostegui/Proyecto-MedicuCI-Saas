@@ -2,12 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "buildCommand": "npm run build",
-  "functions": {
-    "api/[...ruta].ts": {
-      "memory": 512,
-      "maxDuration": 15
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.ts?ruta=$1"
     }
-  },
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
