@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { SEDES, type Sede } from "@/datos/sedes";
 import { listarEspecialidades } from "@/servicios/servicio_medicos";
 import { obtenerSesion } from "@/servicios/servicio_sesion";
-import { slotsDisponibles, fechasDisponibles } from "@/servicios/servicio_agenda";
 import { toast } from "sonner";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 
@@ -24,6 +23,8 @@ import {
   sedesDatos,
   especialidadesDeSedeDatos,
   medicosDatos,
+  fechasDisponiblesDatos,
+  horariosLibresDatos,
 } from "@/servicios/fachada_datos";
 
 export function Boton_Urgente() {
@@ -72,7 +73,7 @@ export function Boton_Urgente() {
         return;
       }
 
-      // 2. Obtener especialidades asociadas a esa sede
+      // 2. Obtener especialidad de la sede
       const especsLista = await especialidadesDeSedeDatos(sedeObj);
       const especObj = especsLista.find((e) => e.nombre === especialidad);
       if (!especObj) {
@@ -81,7 +82,7 @@ export function Boton_Urgente() {
         return;
       }
 
-      // 3. Obtener médicos disponibles
+      // 3. Obtener médico
       const medicosLista = await medicosDatos(sedeObj, especObj);
       const doctor = medicosLista[0];
       if (!doctor) {
@@ -90,26 +91,28 @@ export function Boton_Urgente() {
         return;
       }
 
-      // 4. Buscar primer slot disponible
-      const fechas = fechasDisponibles(doctor.id, 14);
+      // 💡 4. Extraer el ID numérico/string del médico para la API
+      const idMedicoValido = doctor.idNumerico ?? doctor.id;
+      const fechas = await fechasDisponiblesDatos(idMedicoValido);
       let fechaElegida = "";
       let horaElegida = "";
+
       for (const f of fechas) {
-        const slots = slotsDisponibles(doctor.id, f);
+        const slots = await horariosLibresDatos(idMedicoValido, f);
         if (slots.length > 0) {
           fechaElegida = f;
-          horaElegida = slots[0];
+          horaElegida = slots[0]; // Toma el primer horario disponible en MySQL
           break;
         }
       }
 
-      if (!fechaElegida) {
-        toast.error("No hay horarios disponibles en los próximos 14 días.");
+      if (!fechaElegida || !horaElegida) {
+        toast.error("No hay horarios libres en MySQL para este médico. El médico debe generar su agenda.");
         setGuardando(false);
         return;
       }
 
-      // 5. Guardar en MySQL mediante la API
+      // 5. Crear la cita urgente en MySQL
       const r = await crearCitaDatos(actor, sesion.nombre, {
         doctorId: doctor.id,
         doctorNombre: doctor.nombre,

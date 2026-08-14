@@ -231,7 +231,7 @@ export async function reprogramar(
 }
 
 // -------------------------------------------------------------- agenda
-export async function fechasLibres(doctorId: string): Promise<string[]> {
+export async function fechasLibres(doctorId: string | number): Promise<string[]> {
   if (await usandoApi()) {
     try {
       const filas = await api.get<{ fecha: string }[]>(`/disponibilidad?idMedico=${doctorId}&soloFechas=1`);
@@ -240,10 +240,10 @@ export async function fechasLibres(doctorId: string): Promise<string[]> {
       return [];
     }
   }
-  return fechasDeMedico(doctorId);
+  return fechasDeMedico(String(doctorId));
 }
 
-export async function horasLibres(doctorId: string, fecha: string): Promise<string[]> {
+export async function horasLibres(doctorId: string | number, fecha: string): Promise<string[]> {
   if (await usandoApi()) {
     try {
       const filas = await api.get<{ hora: string }[]>(
@@ -254,8 +254,12 @@ export async function horasLibres(doctorId: string, fecha: string): Promise<stri
       return [];
     }
   }
-  return horariosDeMedico(doctorId, fecha);
+  return horariosDeMedico(String(doctorId), fecha);
 }
+
+// 💡 ALIAS para mantener compatibilidad con Boton_Urgente:
+export const fechasDisponiblesDatos = fechasLibres;
+export const horariosLibresDatos = horasLibres;
 
 // -------------------------------------------------------- sesión / actor
 // ===== SOLID - SRP =====
