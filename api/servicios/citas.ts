@@ -40,6 +40,36 @@ export async function conciliarVencidas(): Promise<number> {
   return resultado.affectedRows;
 }
 
+/** Permite autorizar citas buscando tanto por ID numérico como por Código (CI-2026-XXXXX) */
+async function citaAutorizada(sesion: Sesion, identificador: string | number) {
+  const esNumero = !isNaN(Number(identificador));
+  const [cita] = await consultar<{
+    id_cita: number;
+    id_paciente: number;
+    id_medico: number;
+    fecha: string;
+    hora: string;
+    estado: string;
+  }>(
+    `SELECT c.id_cita, c.id_paciente, c.id_medico, c.fecha, c.hora, ec.nombre_estado AS estado
+       FROM cita c JOIN estado_cita ec ON ec.id_estado = c.id_estado
+      WHERE ${esNumero ? "c.id_cita = ?" : "c.codigo_cita = ?"}`,
+    [identificador],
+  );
+  if (!cita) throw new ErrorHttp(404, "Cita no encontrada");
+
+  const propia =
+    (sesion.rol === "Paciente" && cita.id_paciente === sesion.idPaciente) ||
+    (sesion.rol === "Medico" && cita.id_medico === sesion.idMedico) ||
+    sesion.rol === "Admin";
+
+  if (!propia) {
+    await auditar(sesion.correo, "ACCESO_DENEGADO", `Cita ${identificador}`);
+    throw new ErrorHttp(403, "No puede operar sobre esta cita");
+  }
+  return cita;
+}
+
 /** Cada rol ve únicamente lo suyo (OWASP A5). */
 export async function listarCitas(sesion: Sesion, filtros: Record<string, string | undefined>) {
   await conciliarVencidas();
@@ -65,35 +95,9 @@ export async function listarCitas(sesion: Sesion, filtros: Record<string, string
   return consultar(`${SELECT_CITA}${where} ORDER BY c.fecha DESC, c.hora DESC`, parametros);
 }
 
-async function citaAutorizada(sesion: Sesion, idCita: number) {
-  const [cita] = await consultar<{
-    id_cita: number;
-    id_paciente: number;
-    id_medico: number;
-    fecha: string;
-    hora: string;
-    estado: string;
-  }>(
-    `SELECT c.id_cita, c.id_paciente, c.id_medico, c.fecha, c.hora, ec.nombre_estado AS estado
-       FROM cita c JOIN estado_cita ec ON ec.id_estado = c.id_estado
-      WHERE c.id_cita = ?`,
-    [idCita],
-  );
-  if (!cita) throw new ErrorHttp(404, "Cita no encontrada");
-  const propia =
-    (sesion.rol === "Paciente" && cita.id_paciente === sesion.idPaciente) ||
-    (sesion.rol === "Medico" && cita.id_medico === sesion.idMedico) ||
-    sesion.rol === "Admin";
-  if (!propia) {
-    await auditar(sesion.correo, "ACCESO_DENEGADO", `Cita ${idCita}`);
-    throw new ErrorHttp(403, "No puede operar sobre esta cita");
-  }
-  return cita;
-}
-
 export async function obtenerCita(sesion: Sesion, id: string) {
-  await citaAutorizada(sesion, Number(id));
-  const [cita] = await consultar(`${SELECT_CITA} WHERE c.id_cita = ?`, [Number(id)]);
+  const citaAuth = await citaAutorizada(sesion, id);
+  const [cita] = await consultar(`${SELECT_CITA} WHERE c.id_cita = ?`, [citaAuth.id_cita]);
   return cita;
 }
 
@@ -112,7 +116,6 @@ export async function crearCita(sesion: Sesion, datos: Record<string, unknown>) 
   const estadoProgramada = await idEstado("Programada");
 
   const { idCita, codigo } = await enTransaccion(async (cx) => {
-    // El médico debe existir y coincidir con sede y especialidad enviadas.
     const [medicos] = await cx.execute(
       "SELECT id_medico FROM medico WHERE id_medico = ? AND id_sede = ? AND id_especialidad = ? AND estado = 'Activo'",
       [idMedico, idSede, idEspecialidad],
@@ -120,7 +123,6 @@ export async function crearCita(sesion: Sesion, datos: Record<string, unknown>) 
     if (!(medicos as unknown[]).length)
       throw new ErrorHttp(400, "El médico no corresponde a la sede/especialidad indicada");
 
-    // Bloqueo del slot: debe existir, estar libre y no ser pasado.
     const [franjas] = await cx.execute(
       `SELECT id_disponibilidad FROM disponibilidad
         WHERE id_medico = ? AND fecha = ? AND hora_inicio = ? AND estado = 'Libre'
@@ -171,18 +173,15 @@ export async function crearCita(sesion: Sesion, datos: Record<string, unknown>) 
 
   await auditar(sesion.correo, "CREACION_CITA", codigo);
 
-  // 💡 DEVOLVER EL REGISTRO COMPLETO CON JOINs PARA EL FRONTEND
   const [citaCreada] = await consultar(`${SELECT_CITA} WHERE c.id_cita = ?`, [idCita]);
   return citaCreada;
 }
 
 export async function cancelarCita(sesion: Sesion, id: string, datos: Record<string, unknown>) {
-  const idCita = Number(id);
-  const cita = await citaAutorizada(sesion, idCita);
+  const cita = await citaAutorizada(sesion, id);
   if (cita.estado === "Cancelada") throw new ErrorHttp(409, "La cita ya está cancelada");
 
   const motivo = sanitizar(datos["motivo"], 255);
-  // El médico DEBE justificar la cancelación; para el paciente es opcional.
   if (sesion.rol === "Medico" && motivo.length < 5)
     throw new ErrorHttp(400, "El motivo de cancelación es obligatorio para el médico");
 
@@ -191,17 +190,16 @@ export async function cancelarCita(sesion: Sesion, id: string, datos: Record<str
     await cx.execute("UPDATE cita SET id_estado = ?, observaciones = ? WHERE id_cita = ?", [
       estadoCancelada,
       motivo || null,
-      idCita,
+      cita.id_cita,
     ]);
     await cx.execute(
       "INSERT INTO cancelacion (id_cita, motivo, cancelado_por, id_usuario) VALUES (?, ?, ?, ?)",
-      [idCita, motivo || null, sesion.rol === "Medico" ? "Medico" : "Paciente", sesion.idUsuario],
+      [cita.id_cita, motivo || null, sesion.rol === "Medico" ? "Medico" : "Paciente", sesion.idUsuario],
     );
     await cx.execute(
       "INSERT INTO cita_historial (id_cita, estado_anterior, estado_nuevo, id_usuario, detalle) VALUES (?, ?, 'Cancelada', ?, ?)",
-      [idCita, cita.estado, sesion.idUsuario, motivo || null],
+      [cita.id_cita, cita.estado, sesion.idUsuario, motivo || null],
     );
-    // Se libera el horario para otros pacientes.
     await cx.execute(
       "UPDATE disponibilidad SET estado = 'Libre' WHERE id_medico = ? AND fecha = ? AND hora_inicio = ?",
       [cita.id_medico, cita.fecha, cita.hora],
@@ -209,13 +207,12 @@ export async function cancelarCita(sesion: Sesion, id: string, datos: Record<str
   });
 
   await notificarContraparte(sesion, cita, "Cancelacion", "Cita cancelada", motivo);
-  await auditar(sesion.correo, "CANCELACION_CITA", `Cita ${idCita}`);
+  await auditar(sesion.correo, "CANCELACION_CITA", `Cita ${cita.id_cita}`);
   return { ok: true };
 }
 
 export async function reprogramarCita(sesion: Sesion, id: string, datos: Record<string, unknown>) {
-  const idCita = Number(id);
-  const cita = await citaAutorizada(sesion, idCita);
+  const cita = await citaAutorizada(sesion, id);
   if (cita.estado === "Cancelada" || cita.estado === "Atendida")
     throw new ErrorHttp(409, "La cita no puede reprogramarse en su estado actual");
 
@@ -238,7 +235,7 @@ export async function reprogramarCita(sesion: Sesion, id: string, datos: Record<
       fecha,
       hora,
       estadoReprogramada,
-      idCita,
+      cita.id_cita,
     ]);
     await cx.execute(
       "UPDATE disponibilidad SET estado = 'Libre' WHERE id_medico = ? AND fecha = ? AND hora_inicio = ?",
@@ -252,36 +249,36 @@ export async function reprogramarCita(sesion: Sesion, id: string, datos: Record<
       `INSERT INTO cita_historial (id_cita, estado_anterior, estado_nuevo, fecha_anterior,
               hora_anterior, fecha_nueva, hora_nueva, id_usuario, detalle)
        VALUES (?, ?, 'Reprogramada', ?, ?, ?, ?, ?, 'Reprogramación')`,
-      [idCita, cita.estado, cita.fecha, cita.hora, fecha, hora, sesion.idUsuario],
+      [cita.id_cita, cita.estado, cita.fecha, cita.hora, fecha, hora, sesion.idUsuario],
     );
   });
 
   await notificarContraparte(sesion, cita, "Reprogramacion", "Cita reprogramada", `${fecha} ${hora}`);
-  await auditar(sesion.correo, "REPROGRAMACION_CITA", `Cita ${idCita}`);
+  await auditar(sesion.correo, "REPROGRAMACION_CITA", `Cita ${cita.id_cita}`);
   return { ok: true };
 }
 
-/** Cambio de estado manual (Atendida / No asistió) — sólo el médico de la cita. */
 export async function cambiarEstado(sesion: Sesion, id: string, datos: Record<string, unknown>) {
-  const cita = await citaAutorizada(sesion, Number(id));
+  const cita = await citaAutorizada(sesion, id);
   if (sesion.rol !== "Medico") throw new ErrorHttp(403, "Sólo el médico cambia el estado clínico");
   const nombre = String(datos["estado"] ?? "");
   if (!["Atendida", "No asistió", "Programada"].includes(nombre))
     throw new ErrorHttp(400, "Estado no permitido");
   const estado = await idEstado(nombre);
-  await ejecutar("UPDATE cita SET id_estado = ? WHERE id_cita = ?", [estado, Number(id)]);
+  await ejecutar("UPDATE cita SET id_estado = ? WHERE id_cita = ?", [estado, cita.id_cita]);
   await ejecutar(
     "INSERT INTO cita_historial (id_cita, estado_anterior, estado_nuevo, id_usuario) VALUES (?, ?, ?, ?)",
-    [Number(id), cita.estado, nombre, sesion.idUsuario],
+    [cita.id_cita, cita.estado, nombre, sesion.idUsuario],
   );
-  await auditar(sesion.correo, "CAMBIO_ESTADO_CITA", `${id} -> ${nombre}`);
+  await auditar(sesion.correo, "CAMBIO_ESTADO_CITA", `${cita.id_cita} -> ${nombre}`);
   return { ok: true };
 }
 
 export async function eliminarCita(sesion: Sesion, id: string) {
   if (sesion.rol !== "Admin") throw new ErrorHttp(403, "Sólo administración puede eliminar citas");
-  await ejecutar("DELETE FROM cita WHERE id_cita = ?", [Number(id)]);
-  await auditar(sesion.correo, "ELIMINACION_CITA", id);
+  const cita = await citaAutorizada(sesion, id);
+  await ejecutar("DELETE FROM cita WHERE id_cita = ?", [cita.id_cita]);
+  await auditar(sesion.correo, "ELIMINACION_CITA", String(cita.id_cita));
   return { ok: true };
 }
 
@@ -292,7 +289,6 @@ async function notificarContraparte(
   titulo: string,
   detalle?: string,
 ) {
-  // Si actúa el médico se avisa al paciente y viceversa.
   const columna = sesion.rol === "Medico" ? "paciente" : "medico";
   const [fila] = await consultar<{ id_usuario: number }>(
     columna === "paciente"
