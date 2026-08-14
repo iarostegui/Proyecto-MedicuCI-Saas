@@ -53,6 +53,10 @@ export async function registrarPaciente(datos: Record<string, unknown>) {
     throw new ErrorHttp(400, "La contraseña debe tener mínimo 8 caracteres con letras y números");
   if (nombres.length < 3) throw new ErrorHttp(400, "Nombre inválido");
 
+  // Validación y formateo limpio de fecha YYYY-MM-DD
+  const rawFecha = String(datos["fechaEmisionDni"] ?? "");
+  const fechaEmision = /^\d{4}-\d{2}-\d{2}/.test(rawFecha) ? rawFecha.slice(0, 10) : null;
+
   const idUsuario = await enTransaccion(async (cx) => {
     const [existentes] = await cx.execute(
       "SELECT id_usuario FROM usuario WHERE correo = ?",
@@ -60,32 +64,40 @@ export async function registrarPaciente(datos: Record<string, unknown>) {
     );
     if ((existentes as unknown[]).length) throw new ErrorHttp(409, "El correo ya está registrado");
 
-    const [ins] = await cx.execute(
+    // Hasheo asíncrono resuelto antes del INSERT
+    const hash = await hashearContrasena(contrasena);
+
+    const [insUsuario] = await cx.execute(
       "INSERT INTO usuario (correo, contrasena, rol) VALUES (?, ?, 'Paciente')",
-      [correo, await hashearContrasena(contrasena)]
+      [correo, hash]
     );
-    const id = (ins as { insertId: number }).insertId;
-    await cx.execute(
+    const idUsr = (insUsuario as { insertId: number }).insertId;
+
+    const [insPaciente] = await cx.execute(
       `INSERT INTO paciente (id_usuario, nombres, apellidos, dni, fecha_emision_dni, telefono)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [
-        id,
+        idUsr,
         nombres,
         sanitizar(datos["apellidos"], 80) || null,
         dni,
-        (datos["fechaEmisionDni"] as string) || null,
+        fechaEmision,
         sanitizar(datos["telefono"], 15) || null,
       ],
     );
+
+    // Captura segura del ID del paciente recién creado
+    const idPac = (insPaciente as { insertId: number }).insertId || idUsr;
+
     const preferencias = Array.isArray(datos["preferencias"]) ? datos["preferencias"] : [];
     for (const nombre of preferencias as string[]) {
       await cx.execute(
         `INSERT IGNORE INTO paciente_preferencia (id_paciente, id_especialidad)
-         SELECT LAST_INSERT_ID(), id_especialidad FROM especialidad WHERE nombre = ?`,
-        [sanitizar(nombre, 80)],
+         SELECT ?, id_especialidad FROM especialidad WHERE nombre = ?`,
+        [idPac, sanitizar(nombre, 80)],
       );
     }
-    return id;
+    return idUsr;
   });
 
   await auditar(correo, "REGISTRO_USUARIO", "Alta de paciente");
@@ -104,8 +116,11 @@ export async function iniciarSesion(datos: Record<string, unknown>) {
     "SELECT id_usuario, correo, contrasena, rol, estado FROM usuario WHERE correo = ?",
     [correo],
   );
-  // Mensaje genérico: no revela si el correo existe (OWASP A2).
-  if (!usuario || !verificarContrasena(contrasena, usuario.contrasena)) {
+
+  // Await agregado para resolver la verificación asíncrona del hash
+  const esValida = usuario ? await verificarContrasena(contrasena, usuario.contrasena) : false;
+
+  if (!usuario || !esValida) {
     await auditar(correo || "anónimo", "ERROR_AUTENTICACION");
     throw new ErrorHttp(401, "Correo o contraseña incorrectos");
   }

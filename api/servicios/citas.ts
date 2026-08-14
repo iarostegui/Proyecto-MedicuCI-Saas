@@ -111,7 +111,7 @@ export async function crearCita(sesion: Sesion, datos: Record<string, unknown>) 
 
   const estadoProgramada = await idEstado("Programada");
 
-  const resultado = await enTransaccion(async (cx) => {
+  const { idCita, codigo } = await enTransaccion(async (cx) => {
     // El médico debe existir y coincidir con sede y especialidad enviadas.
     const [medicos] = await cx.execute(
       "SELECT id_medico FROM medico WHERE id_medico = ? AND id_sede = ? AND id_especialidad = ? AND estado = 'Activo'",
@@ -138,15 +138,15 @@ export async function crearCita(sesion: Sesion, datos: Record<string, unknown>) 
       [anioActual],
     );
     const correlativo = String((seq as { n: number }[])[0].n).padStart(5, "0");
-    const codigo = `CI-${anioActual}-${correlativo}`;
+    const codCita = `CI-${anioActual}-${correlativo}`;
 
     const [ins] = await cx.execute(
       `INSERT INTO cita (codigo_cita, id_paciente, id_medico, id_especialidad, id_sede,
                         id_estado, fecha, hora, motivo, urgente)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        codigo,
-        sesion.idPaciente!, // <-- Con el '!' le confirmas a TS que no es undefined
+        codCita,
+        sesion.idPaciente!,
         idMedico,
         idEspecialidad,
         idSede,
@@ -157,20 +157,23 @@ export async function crearCita(sesion: Sesion, datos: Record<string, unknown>) 
         datos["urgente"] ? 1 : 0,
       ],
     );
-    const idCita = (ins as { insertId: number }).insertId;
+    const idGenerado = (ins as { insertId: number }).insertId;
     await cx.execute(
       "UPDATE disponibilidad SET estado = 'Reservado' WHERE id_medico = ? AND fecha = ? AND hora_inicio = ?",
       [idMedico, fecha, hora],
     );
     await cx.execute(
       "INSERT INTO cita_historial (id_cita, estado_nuevo, fecha_nueva, hora_nueva, id_usuario, detalle) VALUES (?, 'Programada', ?, ?, ?, 'Creación de cita')",
-      [idCita, fecha, hora, sesion.idUsuario],
+      [idGenerado, fecha, hora, sesion.idUsuario],
     );
-    return { idCita, codigo };
+    return { idCita: idGenerado, codigo: codCita };
   });
 
-  await auditar(sesion.correo, "CREACION_CITA", resultado.codigo);
-  return resultado;
+  await auditar(sesion.correo, "CREACION_CITA", codigo);
+
+  // 💡 DEVOLVER EL REGISTRO COMPLETO CON JOINs PARA EL FRONTEND
+  const [citaCreada] = await consultar(`${SELECT_CITA} WHERE c.id_cita = ?`, [idCita]);
+  return citaCreada;
 }
 
 export async function cancelarCita(sesion: Sesion, id: string, datos: Record<string, unknown>) {
