@@ -11,12 +11,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { SEDES, type Sede } from "@/datos/sedes";
-import { listarEspecialidades, medicosPorEspecialidadYSede } from "@/servicios/servicio_medicos";
-import { crearCita } from "@/servicios/servicio_citas";
+import { listarEspecialidades } from "@/servicios/servicio_medicos";
 import { obtenerSesion } from "@/servicios/servicio_sesion";
 import { slotsDisponibles, fechasDisponibles } from "@/servicios/servicio_agenda";
 import { toast } from "sonner";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
+
+// 💡 DIP - Importamos desde la fachada para conectar con Aiven MySQL
+import {
+  actorActual,
+  crearCitaDatos,
+  sedesDatos,
+  especialidadesDeSedeDatos,
+  medicosDatos,
+} from "@/servicios/fachada_datos";
 
 export function Boton_Urgente() {
   const navigate = useNavigate();
@@ -25,6 +33,7 @@ export function Boton_Urgente() {
   const [abierto, setAbierto] = useState(false);
   const [especialidad, setEspecialidad] = useState(especialidades[0] ?? "");
   const [sede, setSede] = useState<Sede>(SEDES[0]);
+  const [guardando, setGuardando] = useState(false);
 
   // Ocultar en rutas médicas y de administración
   if (
@@ -36,8 +45,7 @@ export function Boton_Urgente() {
     return null;
   }
 
-
-  function confirmar() {
+  async function confirmar() {
     const sesion = obtenerSesion();
     if (!sesion || sesion.rol !== "Paciente") {
       toast.error("Debes iniciar sesión como paciente.");
@@ -46,48 +54,92 @@ export function Boton_Urgente() {
       return;
     }
 
-    const medicos = medicosPorEspecialidadYSede(especialidad, sede);
-    const doctor = medicos[0];
-    if (!doctor) {
-      toast.error("No hay médicos de esta especialidad en la sede seleccionada.");
+    const actor = actorActual();
+    if (!actor) {
+      toast.error("Tu sesión expiró. Vuelve a iniciar sesión.");
       return;
     }
 
-    // Buscar primer slot disponible
-    const fechas = fechasDisponibles(doctor.id, 14);
-    let fechaElegida = "";
-    let horaElegida = "";
-    for (const f of fechas) {
-      const slots = slotsDisponibles(doctor.id, f);
-      if (slots.length > 0) {
-        fechaElegida = f;
-        horaElegida = slots[0];
-        break;
+    setGuardando(true);
+
+    try {
+      // 1. Obtener sedes actualizadas
+      const sedesLista = await sedesDatos();
+      const sedeObj = sedesLista.find((s) => s.nombre === sede);
+      if (!sedeObj) {
+        toast.error("Sede no encontrada.");
+        setGuardando(false);
+        return;
       }
-    }
-    if (!fechaElegida) {
-      toast.error("No hay horarios disponibles en los próximos 14 días.");
-      return;
-    }
 
-    const cita = crearCita({
-      pacienteCorreo: sesion.correo,
-      pacienteNombre: sesion.nombre,
-      doctorId: doctor.id,
-      doctorNombre: doctor.nombre,
-      especialidad,
-      sede,
-      fecha: fechaElegida,
-      hora: horaElegida,
-      esUrgente: true,
-      observaciones: "Cita urgente solicitada desde el botón rápido.",
-    });
+      // 2. Obtener especialidades asociadas a esa sede
+      const especsLista = await especialidadesDeSedeDatos(sedeObj);
+      const especObj = especsLista.find((e) => e.nombre === especialidad);
+      if (!especObj) {
+        toast.error("La sede seleccionada no cuenta con esa especialidad disponible.");
+        setGuardando(false);
+        return;
+      }
 
-    setAbierto(false);
-    toast.success("Cita urgente agendada", {
-      description: `${cita.especialidad} · ${cita.fecha} a las ${cita.hora}. Código ${cita.codigo}.`,
-    });
-    navigate({ to: "/historial_citas" });
+      // 3. Obtener médicos disponibles
+      const medicosLista = await medicosDatos(sedeObj, especObj);
+      const doctor = medicosLista[0];
+      if (!doctor) {
+        toast.error("No hay médicos de esta especialidad en la sede seleccionada.");
+        setGuardando(false);
+        return;
+      }
+
+      // 4. Buscar primer slot disponible
+      const fechas = fechasDisponibles(doctor.id, 14);
+      let fechaElegida = "";
+      let horaElegida = "";
+      for (const f of fechas) {
+        const slots = slotsDisponibles(doctor.id, f);
+        if (slots.length > 0) {
+          fechaElegida = f;
+          horaElegida = slots[0];
+          break;
+        }
+      }
+
+      if (!fechaElegida) {
+        toast.error("No hay horarios disponibles en los próximos 14 días.");
+        setGuardando(false);
+        return;
+      }
+
+      // 5. Guardar en MySQL mediante la API
+      const r = await crearCitaDatos(actor, sesion.nombre, {
+        doctorId: doctor.id,
+        doctorNombre: doctor.nombre,
+        especialidad: especialidad,
+        sede: sede,
+        fecha: fechaElegida,
+        hora: horaElegida,
+        esUrgente: true,
+        observaciones: "Cita urgente solicitada desde el botón rápido.",
+        ...(doctor.idNumerico ? { idMedico: doctor.idNumerico } : {}),
+        ...(sedeObj.id ? { idSede: sedeObj.id } : {}),
+        ...(especObj.id ? { idEspecialidad: especObj.id } : {}),
+      });
+
+      if (!r.ok || !r.datos) {
+        toast.error(r.error ?? "No se pudo agendar la cita urgente.");
+        setGuardando(false);
+        return;
+      }
+
+      setAbierto(false);
+      toast.success("Cita urgente agendada", {
+        description: `${r.datos.especialidad} · ${r.datos.fecha} a las ${r.datos.hora}. Código ${r.datos.codigo}.`,
+      });
+      navigate({ to: "/historial_citas" });
+    } catch {
+      toast.error("Ocurrió un error al procesar la cita urgente.");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   return (
@@ -158,12 +210,12 @@ export function Boton_Urgente() {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={() => setAbierto(false)}>
+          <Button variant="outline" onClick={() => setAbierto(false)} disabled={guardando}>
             Cancelar
           </Button>
-          <Button variant="urgent" onClick={confirmar}>
+          <Button variant="urgent" onClick={() => void confirmar()} disabled={guardando}>
             <BellRing className="size-4" />
-            Confirmar urgencia
+            {guardando ? "Agendando..." : "Confirmar urgencia"}
           </Button>
         </DialogFooter>
       </DialogContent>
