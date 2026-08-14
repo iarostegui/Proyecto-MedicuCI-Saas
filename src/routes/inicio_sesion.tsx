@@ -18,6 +18,8 @@ import {
   Brain,
   Bone,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import clinicImg from "@/assets/clinic.jpg";
@@ -36,7 +38,6 @@ import {
 // La vista habla con la FACHADA DE DATOS: si la API MySQL está disponible usa
 // el backend real; si no (vista previa), cae al almacenamiento local.
 import { iniciarSesion, registrarPaciente } from "@/servicios/fachada_datos";
-
 
 export const Route = createFileRoute("/inicio_sesion")({
   head: () => ({
@@ -113,19 +114,13 @@ function Pagina_Inicio_Sesion() {
 
     const correo = correoLogin.trim();
 
-    // ===== INICIO OWASP A2 =====
-    // La verificación de credenciales (BCrypt + JWT) vive en el backend MySQL
-    // o, en la vista previa, en el servicio local. La vista sólo muestra el
-    // resultado y nunca compara contraseñas.
     const acceso = await iniciarSesion(correo, contrasenaLogin);
     if (!acceso.ok) {
       setErroresLogin({ form: acceso.error });
       return;
     }
     navigate({ to: acceso.destino ?? "/panel_principal" });
-    // ===== FIN OWASP A2 =====
   }
-
 
   async function manejarRegistro(e: React.FormEvent) {
     e.preventDefault();
@@ -147,8 +142,7 @@ function Pagina_Inicio_Sesion() {
 
     if (!errs.correo && esCorreoInstitucional(correo)) {
       if (buscarMedicoPorCorreo(correo)) {
-        errs.correo =
-          "Esta cuenta pertenece al personal médico del hospital.";
+        errs.correo = "Esta cuenta pertenece al personal médico del hospital.";
       } else {
         errs.correo =
           "Las cuentas institucionales sólo pueden ser creadas por un administrador del sistema.";
@@ -162,9 +156,6 @@ function Pagina_Inicio_Sesion() {
       return;
     }
 
-    // ===== INICIO OWASP A2 =====
-    // El alta viaja a la API (BCrypt + JWT en el servidor) o, sin API, al
-    // servicio local equivalente.
     const alta = await registrarPaciente({
       dni,
       fechaEmision,
@@ -178,9 +169,7 @@ function Pagina_Inicio_Sesion() {
       return;
     }
     navigate({ to: alta.destino ?? "/panel_principal" });
-    // ===== FIN OWASP A2 =====
   }
-
 
   return (
     <div className="relative grid min-h-dvh lg:grid-cols-2">
@@ -333,9 +322,9 @@ function Pagina_Inicio_Sesion() {
                         onChange={(e) => setCorreoReg(e.target.value)}
                         error={erroresRegistro.correo}
                       />
-                      <Campo
+                      {/* Campo contraseña con toggle de visibilidad */}
+                      <CampoPassword
                         icono={<Lock className="size-[18px]" />}
-                        type="password"
                         placeholder="Contraseña (mín. 8, letras y números)"
                         autoComplete="new-password"
                         value={contrasenaReg}
@@ -424,9 +413,9 @@ function Pagina_Inicio_Sesion() {
                   onChange={(e) => setCorreoLogin(e.target.value)}
                   error={erroresLogin.correo}
                 />
-                <Campo
+                {/* Campo contraseña con toggle de visibilidad */}
+                <CampoPassword
                   icono={<Lock className="size-[18px]" />}
-                  type="password"
                   placeholder="Contraseña"
                   autoComplete="current-password"
                   value={contrasenaLogin}
@@ -510,6 +499,51 @@ function Campo({
               : "border-input focus:border-ring focus:ring-ring/20")
           }
         />
+      </div>
+      {error && (
+        <p className="mt-1 flex items-center gap-1 pl-1 text-[11px] font-medium text-destructive">
+          <AlertCircle className="size-3" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+{/* Nuevo componente para contraseñas con toggle de ver/ocultar */}
+function CampoPassword({
+  icono,
+  error,
+  ...props
+}: { icono: React.ReactNode; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const [mostrar, setMostrar] = useState(false);
+
+  return (
+    <div>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+          {icono}
+        </span>
+        <input
+          {...props}
+          type={mostrar ? "text" : "password"}
+          aria-invalid={error ? true : undefined}
+          className={
+            "h-10 w-full rounded-xl border bg-background pl-11 pr-11 text-sm outline-none transition-all placeholder:text-muted-foreground focus:ring-2 lg:h-12 " +
+            (error
+              ? "border-destructive focus:border-destructive focus:ring-destructive/20"
+              : "border-input focus:border-ring focus:ring-ring/20")
+          }
+        />
+        <button
+          type="button"
+          onClick={() => setMostrar(!mostrar)}
+          tabIndex={-1}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+          aria-label={mostrar ? "Ocultar contraseña" : "Mostrar contraseña"}
+        >
+          {mostrar ? <EyeOff className="size-[18px]" /> : <Eye className="size-[18px]" />}
+        </button>
       </div>
       {error && (
         <p className="mt-1 flex items-center gap-1 pl-1 text-[11px] font-medium text-destructive">
