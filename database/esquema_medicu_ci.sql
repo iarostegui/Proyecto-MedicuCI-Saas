@@ -300,15 +300,24 @@ SELECT s.nombre AS sede, es.nombre AS especialidad, e.nombre_estado AS estado,
 --    La API la ejecuta también en cada consulta; el evento es respaldo.
 -- ---------------------------------------------------------------------
 
-DROP PROCEDURE IF EXISTS sp_conciliar_estados;
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS sp_conciliar_estados$$
+
 CREATE PROCEDURE sp_conciliar_estados()
 BEGIN
   UPDATE cita c
      JOIN estado_cita v ON v.id_estado = c.id_estado
-     SET c.id_estado = (SELECT id_estado FROM estado_cita WHERE nombre_estado = 'No asistió')
+     SET c.id_estado = (
+       SELECT id_estado
+       FROM estado_cita
+       WHERE nombre_estado = 'No asistió'
+     )
    WHERE v.nombre_estado IN ('Programada','Reprogramada')
      AND TIMESTAMP(c.fecha, c.hora) < NOW() - INTERVAL 2 HOUR;
-END;
+END$$
+
+DELIMITER ;
 
 -- Requiere event_scheduler = ON (en Aiven: Service settings -> Advanced).
 DROP EVENT IF EXISTS ev_conciliar_estados;
