@@ -11,10 +11,27 @@ function configuracion(): mysql.PoolOptions {
   const ca = process.env["DB_SSL_CA"];
   // Aiven exige TLS. Con DB_SSL_CA se valida el certificado (recomendado);
   // sin él se usa TLS sin verificación estricta de CA.
-  const ssl = ca ? { ca } : { rejectUnauthorized: false };
+  // const ssl = ca ? { ca } : { rejectUnauthorized: false };
+  const usarSsl = process.env["DB_SSL"] === "true";
 
+  const ssl = usarSsl
+    ? ca
+      ? { ca }
+      : { rejectUnauthorized: false }
+    : undefined;
+
+  //if (url) {
+  //  return { uri: url, ssl, waitForConnections: true, connectionLimit: 5, maxIdle: 2, idleTimeout: 30000 };
+  //}
   if (url) {
-    return { uri: url, ssl, waitForConnections: true, connectionLimit: 5, maxIdle: 2, idleTimeout: 30000 };
+    return {
+      uri: url,
+      ...(ssl ? { ssl } : {}),
+      waitForConnections: true,
+      connectionLimit: 5,
+      maxIdle: 2,
+      idleTimeout: 30000,
+    };
   }
   return {
     host: process.env["DB_HOST"],
@@ -22,7 +39,8 @@ function configuracion(): mysql.PoolOptions {
     database: process.env["DB_NAME"],
     user: process.env["DB_USER"],
     password: process.env["DB_PASSWORD"],
-    ssl,
+    //ssl,
+    ...(ssl ? { ssl } : {}),
     waitForConnections: true,
     connectionLimit: 5, // serverless: pool pequeño por instancia
     maxIdle: 2,
