@@ -297,12 +297,8 @@ export interface OpcionMedico {
 
 export async function sedesDatos(): Promise<OpcionSede[]> {
   if (await usandoApi()) {
-    try {
-      const filas = await api.get<FilaSedeApi[]>("/sedes");
-      return filas.map((f) => ({ id: f.id_sede, nombre: f.nombre }));
-    } catch {
-      /* respaldo local */
-    }
+    const filas = await api.get<FilaSedeApi[]>("/sedes");
+    return filas.map((f) => ({ id: f.id_sede, nombre: f.nombre }));
   }
   return SEDES.map((s) => ({ nombre: s }));
 }
@@ -310,13 +306,10 @@ export async function sedesDatos(): Promise<OpcionSede[]> {
 export async function especialidadesDeSedeDatos(
   sede: OpcionSede,
 ): Promise<OpcionEspecialidad[]> {
-  if ((await usandoApi()) && sede.id) {
-    try {
-      const filas = await api.get<FilaEspecialidadApi[]>(`/especialidades?idSede=${sede.id}`);
-      return filas.map((f) => ({ id: f.id_especialidad, nombre: f.nombre }));
-    } catch {
-      /* respaldo local */
-    }
+  if (await usandoApi()) {
+    if (!sede.id) return [];
+    const filas = await api.get<FilaEspecialidadApi[]>(`/especialidades?idSede=${sede.id}`);
+    return filas.map((f) => ({ id: f.id_especialidad, nombre: f.nombre }));
   }
   return especialidadesDeSede(sede.nombre as Sede).map((n) => ({ nombre: n }));
 }
@@ -325,23 +318,20 @@ export async function medicosDatos(
   sede: OpcionSede,
   especialidad: OpcionEspecialidad,
 ): Promise<OpcionMedico[]> {
-  if ((await usandoApi()) && sede.id && especialidad.id) {
-    try {
-      const filas = await api.get<FilaMedicoApi[]>(
-        `/medicos?idSede=${sede.id}&idEspecialidad=${especialidad.id}`,
-      );
-      return filas.map((f) => ({
-        id: String(f.id_medico),
-        idNumerico: f.id_medico,
-        nombre: `${f.nombres} ${f.apellidos ?? ""}`.trim(),
-        especialidad: f.especialidad,
-        idEspecialidad: f.id_especialidad,
-        sede: f.sede,
-        idSede: f.id_sede,
-      }));
-    } catch {
-      /* respaldo local */
-    }
+  if (await usandoApi()) {
+    if (!sede.id || !especialidad.id) return [];
+    const filas = await api.get<FilaMedicoApi[]>(
+      `/medicos?idSede=${sede.id}&idEspecialidad=${especialidad.id}`,
+    );
+    return filas.map((f) => ({
+      id: String(f.id_medico),
+      idNumerico: f.id_medico,
+      nombre: `${f.nombres} ${f.apellidos ?? ""}`.trim(),
+      especialidad: f.especialidad,
+      idEspecialidad: f.id_especialidad,
+      sede: f.sede,
+      idSede: f.id_sede,
+    }));
   }
   return medicosDeEspecialidad(especialidad.nombre, sede.nombre as Sede).map((m) => ({
     id: m.id,
@@ -458,7 +448,6 @@ export async function guardarAgendaDatos(
   disponibilidad: Disponibilidad,
   dias = 30,
 ): Promise<ResultadoOperacion<{ franjas: number }>> {
-  guardarDisponibilidad(disponibilidad);
   if (await usandoApi()) {
     try {
       const r = await api.post<{ franjas: number }>("/disponibilidad/generar", {
@@ -474,6 +463,9 @@ export async function guardarAgendaDatos(
       return { ok: false, error: mensaje(error, "No se pudo publicar la agenda.") };
     }
   }
+
+  // Sólo en modo prototipo explícito.
+  guardarDisponibilidad(disponibilidad);
   return { ok: true };
 }
 
@@ -600,17 +592,13 @@ export async function reporteDatos(filtro: {
   sede?: string;
 }): Promise<ResumenReportes> {
   if (await usandoApi()) {
-    try {
-      const sedes = await sedesDatos();
-      const idSede = filtro.sede ? sedes.find((s) => s.nombre === filtro.sede)?.id : undefined;
-      const parametros = new URLSearchParams();
-      if (filtro.desde) parametros.set("desde", filtro.desde);
-      if (filtro.hasta) parametros.set("hasta", filtro.hasta);
-      if (idSede) parametros.set("idSede", String(idSede));
-      return await api.get<ResumenReportes>(`/reportes?${parametros.toString()}`);
-    } catch {
-      /* respaldo local */
-    }
+    const sedes = await sedesDatos();
+    const idSede = filtro.sede ? sedes.find((s) => s.nombre === filtro.sede)?.id : undefined;
+    const parametros = new URLSearchParams();
+    if (filtro.desde) parametros.set("desde", filtro.desde);
+    if (filtro.hasta) parametros.set("hasta", filtro.hasta);
+    if (idSede) parametros.set("idSede", String(idSede));
+    return await api.get<ResumenReportes>(`/reportes?${parametros.toString()}`);
   }
   return generarReporte(filtro);
 }
