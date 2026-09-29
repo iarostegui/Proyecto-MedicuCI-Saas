@@ -1,66 +1,53 @@
 // ===== SOLID - SRP =====
-// Única responsabilidad: decidir de DÓNDE salen los datos en tiempo de ejecución.
-// - "api"   → backend Node en Vercel conectado a MySQL (Aiven).
-// - "local" → almacenamiento local (vista previa de Lovable, sin acceso TCP a MySQL).
+// Única responsabilidad: decidir de DÓNDE salen los datos.
 //
-// ===== SOLID - OCP / DIP =====
-// Las pantallas dependen de la fachada (`fachada_datos`), nunca de esta decisión.
-// Añadir un nuevo origen no obliga a tocar la interfaz.
+// Política:
+// - "api"   → modo normal de la aplicación. Es el valor por defecto.
+// - "local" → SOLO para prototipos visuales/funcionales sin backend.
+//             Debe habilitarse explícitamente con VITE_MODO_PROTOTIPO_LOCAL=true.
+//
+// En una implementación real NO se hace fallback automático a local si la API
+// falla. Un fallo de API/backend debe quedar visible para poder corregirlo.
 
 export type OrigenDatos = "api" | "local";
 
-const CLAVE_CACHE = "medicu:origen_datos";
-let promesa: Promise<OrigenDatos> | null = null;
-let resuelto: OrigenDatos | null = null;
+const env =
+  (import.meta as unknown as { env?: Record<string, string | boolean | undefined> }).env ?? {};
 
-/** Origen ya conocido (sin esperar). Por defecto "local". */
+const MODO_PROTOTIPO_LOCAL =
+  String(env["VITE_MODO_PROTOTIPO_LOCAL"] ?? "").toLowerCase() === "true";
+
+let origenForzado: OrigenDatos | null = null;
+
+/** Origen configurado. API es siempre el valor por defecto. */
 export function origenActual(): OrigenDatos {
-  if (resuelto) return resuelto;
-  if (typeof window !== "undefined") {
-    const guardado = window.sessionStorage.getItem(CLAVE_CACHE);
-    if (guardado === "api" || guardado === "local") {
-      resuelto = guardado;
-      return guardado;
-    }
-  }
-  return "local";
+  if (origenForzado) return origenForzado;
+  return MODO_PROTOTIPO_LOCAL ? "local" : "api";
 }
 
-/** Detecta una sola vez si `/api/salud` responde; cachea el resultado. */
+/**
+ * Mantiene la interfaz asíncrona histórica.
+ * Ya no prueba /api/salud para decidir el origen: una caída de API no autoriza
+ * a cambiar silenciosamente a almacenamiento local.
+ */
 export function detectarOrigen(): Promise<OrigenDatos> {
-  if (resuelto) return Promise.resolve(resuelto);
-  if (typeof window === "undefined") return Promise.resolve("local");
-  if (promesa) return promesa;
-
-  promesa = (async () => {
-    let origen: OrigenDatos = "local";
-    try {
-      const control = new AbortController();
-      const tiempo = setTimeout(() => control.abort(), 3500);
-      const respuesta = await fetch("/api/salud", { signal: control.signal });
-      clearTimeout(tiempo);
-      if (respuesta.ok) {
-        const cuerpo = (await respuesta.json().catch(() => ({}))) as { ok?: boolean };
-        if (cuerpo.ok) origen = "api";
-      }
-    } catch {
-      origen = "local";
-    }
-    resuelto = origen;
-    window.sessionStorage.setItem(CLAVE_CACHE, origen);
-    return origen;
-  })();
-
-  return promesa;
+  return Promise.resolve(origenActual());
 }
 
 export async function usandoApi(): Promise<boolean> {
   return (await detectarOrigen()) === "api";
 }
 
-/** Sólo para pruebas o para forzar un origen desde la consola. */
+/**
+ * Sólo para pruebas automatizadas.
+ * No permite forzar almacenamiento local salvo que el build haya sido creado
+ * explícitamente en modo prototipo.
+ */
 export function forzarOrigen(origen: OrigenDatos): void {
-  resuelto = origen;
-  promesa = Promise.resolve(origen);
-  if (typeof window !== "undefined") window.sessionStorage.setItem(CLAVE_CACHE, origen);
+  if (origen === "local" && !MODO_PROTOTIPO_LOCAL) {
+    throw new Error(
+      "El almacenamiento local está deshabilitado. Use VITE_MODO_PROTOTIPO_LOCAL=true sólo para prototipos.",
+    );
+  }
+  origenForzado = origen;
 }
