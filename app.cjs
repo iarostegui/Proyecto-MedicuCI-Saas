@@ -16,23 +16,38 @@ function cargarMiddleware() {
 }
 
 const server = http.createServer(async (req, res) => {
+  const inicio = Date.now();
+  console.log("[medicu-ci] request", req.method, req.url);
+
+  res.on("finish", () => {
+    console.log(
+      "[medicu-ci] response",
+      req.method,
+      req.url,
+      res.statusCode,
+      Date.now() - inicio + "ms",
+    );
+  });
+
   try {
     const middleware = await cargarMiddleware();
-    return middleware(req, res);
+    await middleware(req, res);
   } catch (error) {
-    console.error("[medicu-ci request]", error);
+    console.error("[medicu-ci request error]", error);
+
     if (!res.headersSent) {
       res.writeHead(500, { "Content-Type": "application/json; charset=utf-8" });
     }
-    res.end(JSON.stringify({
-      ok: false,
-      error: "Error cargando la aplicacion",
-    }));
+
+    if (!res.writableEnded) {
+      res.end(JSON.stringify({
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
   }
 });
 
-// IMPORTANTE: escuchar inmediatamente para que Passenger complete el handshake
-// antes de cargar el bundle Nitro/SSR.
 const listenTarget = process.env.PORT || 3000;
 
 server.listen(listenTarget, () => {
