@@ -27,7 +27,7 @@ jobs:
         run: npm run build
 
       - name: Package output
-        run: zip -r medicuci-output.zip .output
+        run: zip -r medicuci-output.zip .output app.js
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
