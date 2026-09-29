@@ -27,7 +27,6 @@ import {
   buscarUsuarioPorCorreo,
   buscarMedicoPorCorreo,
   esCorreoInstitucional,
-  inicializarAlmacen,
   validarContrasena,
   validarCorreo,
   validarDni,
@@ -35,8 +34,9 @@ import {
   validarNombre,
 } from "@/servicios/servicio_sesion";
 // ===== SOLID - DIP =====
-// La vista habla con la FACHADA DE DATOS: si la API MySQL está disponible usa
-// el backend real; si no (vista previa), cae al almacenamiento local.
+// La vista habla con la FACHADA DE DATOS.
+// En implementación real usa API/MySQL; el modo local sólo existe cuando el
+// build se genera explícitamente como prototipo sin backend.
 import { iniciarSesion, registrarPaciente } from "@/servicios/fachada_datos";
 
 export const Route = createFileRoute("/inicio_sesion")({
@@ -102,7 +102,6 @@ function Pagina_Inicio_Sesion() {
 
   async function manejarLogin(e: React.FormEvent) {
     e.preventDefault();
-    inicializarAlmacen();
     const errs: Errores_Login = {};
     const errCorreo = validarCorreo(correoLogin);
     if (errCorreo) errs.correo = errCorreo;
@@ -124,7 +123,6 @@ function Pagina_Inicio_Sesion() {
 
   async function manejarRegistro(e: React.FormEvent) {
     e.preventDefault();
-    inicializarAlmacen();
     const errs: Errores_Registro = {};
     const eDni = validarDni(dni);
     if (eDni) errs.dni = eDni;
