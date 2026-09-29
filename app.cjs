@@ -15,21 +15,22 @@ function cargarMiddleware() {
   return middlewarePromise;
 }
 
+function restaurarRutaOriginal(req) {
+  const actual = new URL(req.url || "/", "http://localhost");
+  const rutaOriginal = actual.searchParams.get("__route");
+
+  if (!rutaOriginal) return;
+
+  actual.searchParams.delete("__route");
+  const query = actual.searchParams.toString();
+
+  req.url = rutaOriginal + (query ? `?${query}` : "");
+}
+
 const server = http.createServer(async (req, res) => {
-  const inicio = Date.now();
-  console.log("[medicu-ci] request", req.method, req.url);
-
-  res.on("finish", () => {
-    console.log(
-      "[medicu-ci] response",
-      req.method,
-      req.url,
-      res.statusCode,
-      Date.now() - inicio + "ms",
-    );
-  });
-
   try {
+    restaurarRutaOriginal(req);
+
     const middleware = await cargarMiddleware();
     await middleware(req, res);
   } catch (error) {
@@ -42,7 +43,7 @@ const server = http.createServer(async (req, res) => {
     if (!res.writableEnded) {
       res.end(JSON.stringify({
         ok: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: "Error interno de la aplicacion",
       }));
     }
   }
