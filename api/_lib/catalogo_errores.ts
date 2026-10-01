@@ -1,3 +1,5 @@
+import { ErrorHttp } from "./seguridad.js";
+
 // Catálogo central de errores MEDICU CI.
 // Formato obligatorio: XXXX-YYYY
 // XXXX = dominio/módulo funcional de 4 caracteres.
@@ -99,4 +101,14 @@ export type CodigoErrorSistema = keyof typeof ERRORES_SISTEMA;
 
 export function obtenerErrorSistema(codigo: CodigoErrorSistema): DefinicionErrorSistema {
   return ERRORES_SISTEMA[codigo];
+}
+
+
+export type ErrorHttpSistema = ErrorHttp & { codigoSistema: CodigoErrorSistema };
+
+export function errorSistema(codigo: CodigoErrorSistema): ErrorHttpSistema {
+  const definicion = obtenerErrorSistema(codigo);
+  const error = new ErrorHttp(definicion.http, definicion.mensaje) as ErrorHttpSistema;
+  error.codigoSistema = codigo;
+  return error;
 }
