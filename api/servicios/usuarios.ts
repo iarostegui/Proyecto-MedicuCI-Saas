@@ -1,6 +1,7 @@
 // ===== SOLID - SRP =====
 // Servicio de autenticación y pacientes: registro, login y datos propios.
 import { consultar, ejecutar, enTransaccion } from "../_lib/db.js";
+import { errorSistema } from "../_lib/catalogo_errores.js";
 import {
   ErrorHttp,
   firmarToken,
@@ -36,9 +37,9 @@ function esDuplicadoMysql(error: unknown): error is {
 function mensajeDuplicadoMysql(error: unknown): ErrorHttp {
   const e = error as { message?: string; sqlMessage?: string };
   const detalle = `${e.sqlMessage ?? e.message ?? ""}`.toLowerCase();
-  if (detalle.includes("uq_paciente_dni")) return new ErrorHttp(409, "El DNI ya está registrado");
-  if (detalle.includes("uq_usuario_correo")) return new ErrorHttp(409, "El correo ya está registrado");
-  return new ErrorHttp(409, "Ya existe un registro con estos datos");
+  if (detalle.includes("uq_paciente_dni")) return errorSistema("AUTH-0011");
+  if (detalle.includes("uq_usuario_correo")) return errorSistema("AUTH-0010");
+  return errorSistema("BBDD-0001");
 }
 
 interface FilaUsuario {
@@ -73,30 +74,30 @@ export async function registrarPaciente(datos: Record<string, unknown>) {
   const dni = sanitizar(datos["dni"], 8);
   const nombres = sanitizar(datos["nombres"], 80);
 
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) throw new ErrorHttp(400, "Correo inválido");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) throw errorSistema("AUTH-0001");
   if (correo.endsWith(DOMINIO_INSTITUCIONAL))
-    throw new ErrorHttp(403, "Los correos institucionales no pueden registrarse");
-  if (!/^\d{8}$/.test(dni)) throw new ErrorHttp(400, "El DNI debe tener 8 dígitos");
+    throw errorSistema("AUTH-0002");
+  if (!/^\d{8}$/.test(dni)) throw errorSistema("AUTH-0003");
   if (contrasena.length < 8 || !/[a-zA-Z]/.test(contrasena) || !/\d/.test(contrasena))
-    throw new ErrorHttp(400, "La contraseña debe tener mínimo 8 caracteres con letras y números");
-  if (nombres.length < 3) throw new ErrorHttp(400, "Nombre inválido");
+    throw errorSistema("AUTH-0004");
+  if (nombres.length < 3) throw errorSistema("AUTH-0005");
   if (!/^[A-Za-zÁÉÍÓÚÑáéíóúñ\s'-]+$/.test(nombres))
-    throw new ErrorHttp(400, "El nombre solo puede contener letras");
+    throw errorSistema("AUTH-0006");
 
   // La fecha de emisión es obligatoria en el flujo de registro y debe ser coherente.
   const rawFecha = String(datos["fechaEmisionDni"] ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(rawFecha))
-    throw new ErrorHttp(400, "Fecha de emisión inválida");
+    throw errorSistema("AUTH-0007");
   const fechaEmision = rawFecha;
   const fecha = new Date(`${fechaEmision}T00:00:00`);
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
   if (Number.isNaN(fecha.getTime()) || fecha.getTime() > hoy.getTime())
-    throw new ErrorHttp(400, "La fecha de emisión no puede ser futura");
+    throw errorSistema("AUTH-0008");
   const minima = new Date(hoy);
   minima.setFullYear(minima.getFullYear() - 60);
   if (fecha.getTime() < minima.getTime())
-    throw new ErrorHttp(400, "La fecha de emisión es demasiado antigua");
+    throw errorSistema("AUTH-0009");
 
   let idUsuario: number;
   try {
@@ -107,14 +108,14 @@ export async function registrarPaciente(datos: Record<string, unknown>) {
         [correo],
       );
       if ((usuariosCorreo as unknown[]).length)
-        throw new ErrorHttp(409, "El correo ya está registrado");
+        throw errorSistema("AUTH-0010");
 
       const [pacientesDni] = await cx.execute(
         "SELECT id_paciente FROM paciente WHERE dni = ? LIMIT 1",
         [dni],
       );
       if ((pacientesDni as unknown[]).length)
-        throw new ErrorHttp(409, "El DNI ya está registrado");
+        throw errorSistema("AUTH-0011");
 
       const hash = await hashearContrasena(contrasena);
 
@@ -184,9 +185,9 @@ export async function iniciarSesion(datos: Record<string, unknown>) {
 
   if (!usuario || !esValida) {
     await auditar(correo || "anónimo", "ERROR_AUTENTICACION");
-    throw new ErrorHttp(401, "Correo o contraseña incorrectos");
+    throw errorSistema("AUTH-0012");
   }
-  if (usuario.estado !== "Activo") throw new ErrorHttp(403, "Usuario inactivo o bloqueado");
+  if (usuario.estado !== "Activo") throw errorSistema("AUTH-0013");
 
   await ejecutar("UPDATE usuario SET ultimo_acceso = NOW() WHERE id_usuario = ?", [
     usuario.id_usuario,
