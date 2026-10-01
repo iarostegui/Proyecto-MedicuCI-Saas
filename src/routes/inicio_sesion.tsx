@@ -24,7 +24,6 @@ import {
 import { Button } from "@/components/ui/button";
 import clinicImg from "@/assets/clinic.jpg";
 import {
-  buscarUsuarioPorCorreo,
   buscarMedicoPorCorreo,
   esCorreoInstitucional,
   validarContrasena,
@@ -84,6 +83,7 @@ function Pagina_Inicio_Sesion() {
   const [correoReg, setCorreoReg] = useState("");
   const [contrasenaReg, setContrasenaReg] = useState("");
   const [erroresRegistro, setErroresRegistro] = useState<Errores_Registro>({});
+  const [registrando, setRegistrando] = useState(false);
 
   // Login
   const [correoLogin, setCorreoLogin] = useState("");
@@ -146,14 +146,12 @@ function Pagina_Inicio_Sesion() {
           "Las cuentas institucionales sólo pueden ser creadas por un administrador del sistema.";
       }
     }
-    if (!errs.correo && buscarUsuarioPorCorreo(correo)) {
-      errs.correo = "Ya existe una cuenta con este correo. Inicia sesión.";
-    }
     if (Object.keys(errs).length) {
       setErroresRegistro(errs);
       return;
     }
 
+    setRegistrando(true);
     const alta = await registrarPaciente({
       dni,
       fechaEmision,
@@ -162,8 +160,18 @@ function Pagina_Inicio_Sesion() {
       contrasena: contrasenaReg,
       especialidades: preferencias,
     });
+    setRegistrando(false);
+
     if (!alta.ok) {
-      setErroresRegistro({ form: alta.error ?? "No se pudo completar el registro." });
+      const mensaje = alta.error ?? "No se pudo completar el registro.";
+      const normalizado = mensaje.toLowerCase();
+      if (normalizado.includes("dni")) {
+        setErroresRegistro({ dni: mensaje });
+      } else if (normalizado.includes("correo")) {
+        setErroresRegistro({ correo: mensaje });
+      } else {
+        setErroresRegistro({ form: mensaje });
+      }
       return;
     }
     navigate({ to: alta.destino ?? "/panel_principal" });
@@ -395,8 +403,14 @@ function Pagina_Inicio_Sesion() {
                 </label>
                 {erroresRegistro.terminos && <Error_Formulario mensaje={erroresRegistro.terminos} />}
 
-                <Button type="submit" size="lg" className="w-full text-base">
-                  Crear cuenta
+                {erroresRegistro.form && <Error_Formulario mensaje={erroresRegistro.form} />}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full text-base"
+                  disabled={registrando}
+                >
+                  {registrando ? "Creando cuenta..." : "Crear cuenta"}
                   <ArrowRight className="size-4" />
                 </Button>
               </form>
