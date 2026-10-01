@@ -13,6 +13,34 @@ import {
 
 const DOMINIO_INSTITUCIONAL = "@medicu.ci.com";
 
+const PREFERENCIAS_ESPECIALIDAD: Record<string, string> = {
+  familiar: "Medicina familiar",
+  adultos_mayores: "Adultos mayores",
+  pediatria: "Pediatría",
+  salud_mental: "Salud mental",
+  traumatologia: "Traumatología",
+  general: "Medicina general",
+};
+
+function esDuplicadoMysql(error: unknown): error is {
+  code?: string;
+  errno?: number;
+  message?: string;
+  sqlMessage?: string;
+} {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { code?: string; errno?: number };
+  return e.code === "ER_DUP_ENTRY" || e.errno === 1062;
+}
+
+function mensajeDuplicadoMysql(error: unknown): ErrorHttp {
+  const e = error as { message?: string; sqlMessage?: string };
+  const detalle = `${e.sqlMessage ?? e.message ?? ""}`.toLowerCase();
+  if (detalle.includes("uq_paciente_dni")) return new ErrorHttp(409, "El DNI ya está registrado");
+  if (detalle.includes("uq_usuario_correo")) return new ErrorHttp(409, "El correo ya está registrado");
+  return new ErrorHttp(409, "Ya existe un registro con estos datos");
+}
+
 interface FilaUsuario {
   id_usuario: number;
   correo: string;
@@ -52,53 +80,87 @@ export async function registrarPaciente(datos: Record<string, unknown>) {
   if (contrasena.length < 8 || !/[a-zA-Z]/.test(contrasena) || !/\d/.test(contrasena))
     throw new ErrorHttp(400, "La contraseña debe tener mínimo 8 caracteres con letras y números");
   if (nombres.length < 3) throw new ErrorHttp(400, "Nombre inválido");
+  if (!/^[A-Za-zÁÉÍÓÚÑáéíóúñ\s'-]+$/.test(nombres))
+    throw new ErrorHttp(400, "El nombre solo puede contener letras");
 
-  // Validación y formateo limpio de fecha YYYY-MM-DD
+  // La fecha de emisión es obligatoria en el flujo de registro y debe ser coherente.
   const rawFecha = String(datos["fechaEmisionDni"] ?? "");
-  const fechaEmision = /^\d{4}-\d{2}-\d{2}/.test(rawFecha) ? rawFecha.slice(0, 10) : null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(rawFecha))
+    throw new ErrorHttp(400, "Fecha de emisión inválida");
+  const fechaEmision = rawFecha;
+  const fecha = new Date(`${fechaEmision}T00:00:00`);
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  if (Number.isNaN(fecha.getTime()) || fecha.getTime() > hoy.getTime())
+    throw new ErrorHttp(400, "La fecha de emisión no puede ser futura");
+  const minima = new Date(hoy);
+  minima.setFullYear(minima.getFullYear() - 60);
+  if (fecha.getTime() < minima.getTime())
+    throw new ErrorHttp(400, "La fecha de emisión es demasiado antigua");
 
-  const idUsuario = await enTransaccion(async (cx) => {
-    const [existentes] = await cx.execute(
-      "SELECT id_usuario FROM usuario WHERE correo = ?",
-      [correo],
-    );
-    if ((existentes as unknown[]).length) throw new ErrorHttp(409, "El correo ya está registrado");
-
-    // Hasheo asíncrono resuelto antes del INSERT
-    const hash = await hashearContrasena(contrasena);
-
-    const [insUsuario] = await cx.execute(
-      "INSERT INTO usuario (correo, contrasena, rol) VALUES (?, ?, 'Paciente')",
-      [correo, hash]
-    );
-    const idUsr = (insUsuario as { insertId: number }).insertId;
-
-    const [insPaciente] = await cx.execute(
-      `INSERT INTO paciente (id_usuario, nombres, apellidos, dni, fecha_emision_dni, telefono)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        idUsr,
-        nombres,
-        sanitizar(datos["apellidos"], 80) || null,
-        dni,
-        fechaEmision,
-        sanitizar(datos["telefono"], 15) || null,
-      ],
-    );
-
-    // Captura segura del ID del paciente recién creado
-    const idPac = (insPaciente as { insertId: number }).insertId || idUsr;
-
-    const preferencias = Array.isArray(datos["preferencias"]) ? datos["preferencias"] : [];
-    for (const nombre of preferencias as string[]) {
-      await cx.execute(
-        `INSERT IGNORE INTO paciente_preferencia (id_paciente, id_especialidad)
-         SELECT ?, id_especialidad FROM especialidad WHERE nombre = ?`,
-        [idPac, sanitizar(nombre, 80)],
+  let idUsuario: number;
+  try {
+    idUsuario = await enTransaccion(async (cx) => {
+      // Validaciones explícitas para dar mensajes útiles antes del INSERT.
+      const [usuariosCorreo] = await cx.execute(
+        "SELECT id_usuario FROM usuario WHERE correo = ? LIMIT 1",
+        [correo],
       );
-    }
-    return idUsr;
-  });
+      if ((usuariosCorreo as unknown[]).length)
+        throw new ErrorHttp(409, "El correo ya está registrado");
+
+      const [pacientesDni] = await cx.execute(
+        "SELECT id_paciente FROM paciente WHERE dni = ? LIMIT 1",
+        [dni],
+      );
+      if ((pacientesDni as unknown[]).length)
+        throw new ErrorHttp(409, "El DNI ya está registrado");
+
+      const hash = await hashearContrasena(contrasena);
+
+      const [insUsuario] = await cx.execute(
+        "INSERT INTO usuario (correo, contrasena, rol) VALUES (?, ?, 'Paciente')",
+        [correo, hash],
+      );
+      const idUsr = (insUsuario as { insertId: number }).insertId;
+
+      const [insPaciente] = await cx.execute(
+        `INSERT INTO paciente (id_usuario, nombres, apellidos, dni, fecha_emision_dni, telefono)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          idUsr,
+          nombres,
+          sanitizar(datos["apellidos"], 80) || null,
+          dni,
+          fechaEmision,
+          sanitizar(datos["telefono"], 15) || null,
+        ],
+      );
+
+      const idPac = (insPaciente as { insertId: number }).insertId || idUsr;
+
+      // La UI envía IDs estables; la BD conserva nombres normalizados.
+      const preferencias = Array.isArray(datos["preferencias"]) ? datos["preferencias"] : [];
+      const nombresPreferencia = [...new Set(
+        (preferencias as unknown[])
+          .map((p) => PREFERENCIAS_ESPECIALIDAD[String(p)] ?? sanitizar(p, 80))
+          .filter(Boolean),
+      )];
+
+      for (const nombre of nombresPreferencia) {
+        await cx.execute(
+          `INSERT IGNORE INTO paciente_preferencia (id_paciente, id_especialidad)
+           SELECT ?, id_especialidad FROM especialidad WHERE nombre = ? AND estado = 'Activo'`,
+          [idPac, nombre],
+        );
+      }
+      return idUsr;
+    });
+  } catch (error) {
+    if (error instanceof ErrorHttp) throw error;
+    if (esDuplicadoMysql(error)) throw mensajeDuplicadoMysql(error);
+    throw error;
+  }
 
   await auditar(correo, "REGISTRO_USUARIO", "Alta de paciente");
   const [usuario] = await consultar<FilaUsuario>(
